@@ -2,29 +2,72 @@
 <html lang="it">
 <head>
   <meta charset="UTF-8" />
-  <title>Orari Piscina Lampugnano</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Piscina Lampugnano</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
 
+  <!-- Firebase: un solo database condiviso tra la vista display e la vista admin -->
+  <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-database-compat.js"></script>
+  <script>
+    /* ============================================================
+       CONFIGURAZIONE FIREBASE
+       Sostituisci i valori qui sotto con quelli del TUO progetto
+       Firebase (Console Firebase > Impostazioni progetto > Le tue
+       app > Configurazione SDK). Istruzioni complete nel file
+       SETUP_FIREBASE.md fornito a parte.
+       ============================================================ */
+    const firebaseConfig = {
+      apiKey: "INSERISCI_QUI_LA_TUA_API_KEY",
+      authDomain: "INSERISCI_QUI.firebaseapp.com",
+      databaseURL: "https://INSERISCI_QUI-default-rtdb.europe-west1.firebasedatabase.app",
+      projectId: "INSERISCI_QUI",
+      storageBucket: "INSERISCI_QUI.appspot.com",
+      messagingSenderId: "INSERISCI_QUI",
+      appId: "INSERISCI_QUI"
+    };
+    firebase.initializeApp(firebaseConfig);
+  </script>
+
   <style>
+
     :root {
       --primary-color: #003366;
+      --accent-color: #004080;
       --bg-color: #f0f8ff;
-      /* MODIFICATO: Header molto più alto */
-      --header-height: 220px; 
+      --danger-color: #b02a37;
+      --success-color: #198754;
+      --border-color: rgba(0,51,102,0.12);
+      --header-height: 220px;
       --footer-height: 80px;
     }
-
+    * { box-sizing: border-box; }
     body {
       font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
       margin: 0;
       background-color: var(--bg-color);
       color: var(--primary-color);
-      letter-spacing: -0.5px;
+    }
+
+    /* ====== VISTA DISPLAY (schermo) ====== */
+    #display-view {
       display: flex;
       flex-direction: column;
       height: 100vh;
       overflow: hidden;
+      letter-spacing: -0.5px;
     }
+
+    /* ====== VISTA ADMIN ====== */
+    #admin-view {
+      min-height: 100vh;
+    }
+
+    /* ====================================================
+       STILI VISTA DISPLAY
+       ==================================================== */
+
 
     /* ====== HEADER ====== */
     header {
@@ -217,10 +260,227 @@
       0%   { transform: translateX(0); }
       100% { transform: translateX(-50%); }
     }
+  
+
+    /* ====================================================
+       STILI VISTA ADMIN
+       ==================================================== */
+
+
+    /* ====== LOGIN ====== */
+    #login-screen {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .login-card {
+      background: #fff;
+      border-radius: 16px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+      padding: 40px 36px;
+      width: 100%;
+      max-width: 360px;
+      border-top: 4px solid var(--primary-color);
+    }
+    .login-card h1 {
+      font-size: 22px;
+      margin: 0 0 6px;
+    }
+    .login-card p.sub {
+      margin: 0 0 24px;
+      color: #5a7a9a;
+      font-size: 14px;
+    }
+    .login-card label {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      margin-bottom: 6px;
+      margin-top: 16px;
+    }
+    .login-card input {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      font-size: 15px;
+      font-family: inherit;
+    }
+    .login-card button {
+      margin-top: 24px;
+      width: 100%;
+    }
+    #login-error {
+      color: var(--danger-color);
+      font-size: 13px;
+      margin-top: 14px;
+      min-height: 16px;
+    }
+
+    /* ====== LAYOUT GENERALE ADMIN ====== */
+    #admin-app { display: none; padding-bottom: 60px; }
+
+    header.admin-header {
+      background: #fff;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.06);
+      padding: 18px 28px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+    header.admin-header h1 { font-size: 19px; margin: 0; }
+    .header-actions { display: flex; align-items: center; gap: 14px; }
+    .header-actions a {
+      color: var(--accent-color);
+      font-size: 14px;
+      font-weight: 600;
+      text-decoration: none;
+    }
+    .header-actions a:hover { text-decoration: underline; }
+
+    button {
+      font-family: inherit;
+      font-size: 14px;
+      font-weight: 600;
+      border: none;
+      border-radius: 8px;
+      padding: 10px 18px;
+      cursor: pointer;
+      background: var(--primary-color);
+      color: #fff;
+      transition: opacity 0.15s ease;
+    }
+    button:hover { opacity: 0.88; }
+    button.btn-secondary { background: #e7eef6; color: var(--primary-color); }
+    button.btn-delete, button.btn-remove-row { background: #fbeaec; color: var(--danger-color); }
+    button.btn-edit { background: #e7eef6; color: var(--primary-color); }
+    button.btn-remove-row { padding: 6px 12px; }
+
+    .tabs {
+      display: flex;
+      gap: 4px;
+      padding: 20px 28px 0;
+      max-width: 900px;
+      margin: 0 auto;
+    }
+    .tab-btn {
+      background: transparent;
+      color: #5a7a9a;
+      border-radius: 8px 8px 0 0;
+      padding: 12px 20px;
+      box-shadow: none;
+    }
+    .tab-btn:hover { opacity: 1; background: rgba(0,51,102,0.05); }
+    .tab-btn.active {
+      background: #fff;
+      color: var(--primary-color);
+      box-shadow: 0 -2px 8px rgba(0,0,0,0.04);
+    }
+
+    main {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 24px 28px 60px;
+    }
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+
+    .add-card {
+      background: #fff;
+      border-radius: 14px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.06);
+      padding: 24px;
+      margin-bottom: 28px;
+      border-left: 5px solid var(--primary-color);
+    }
+    .add-card h2 { font-size: 16px; margin: 0 0 16px; }
+    .add-card h3 { font-size: 14px; margin: 18px 0 10px; color: #5a7a9a; }
+
+    .inline-form { display: flex; flex-wrap: wrap; gap: 12px; align-items: end; }
+    .inline-form .field { display: flex; flex-direction: column; gap: 5px; }
+    .inline-form label span { font-size: 12px; font-weight: 600; color: #5a7a9a; }
+    .field-grow { flex: 1; min-width: 180px; }
+
+    input[type=text], input[type=time], input[type=number], input[type=date], select {
+      padding: 9px 11px;
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      font-size: 14px;
+      font-family: inherit;
+      color: var(--primary-color);
+    }
+
+    .day-group { margin-bottom: 20px; }
+    .day-group h3 {
+      font-size: 15px;
+      margin: 0 0 8px;
+      padding-bottom: 6px;
+      border-bottom: 2px solid var(--border-color);
+    }
+    .corso-row, .nota-row {
+      display: grid;
+      grid-template-columns: 2fr 110px 110px 90px auto auto;
+      gap: 10px;
+      align-items: center;
+      background: #fff;
+      border-radius: 10px;
+      padding: 10px 14px;
+      margin-bottom: 8px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+      transition: background-color 0.3s ease;
+    }
+    .nota-row { grid-template-columns: 1fr auto auto; }
+    .corso-row input, .nota-row input { width: 100%; }
+    .saved-flash { background-color: #d1e7dd !important; }
+
+    .ecc-corso-row {
+      display: grid;
+      grid-template-columns: 2fr 110px 110px 90px auto;
+      gap: 10px;
+      margin-bottom: 8px;
+    }
+    #ecc-add-row { margin-top: 4px; }
+
+    .ecc-card {
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 1px 6px rgba(0,0,0,0.06);
+      padding: 16px 18px;
+      margin-bottom: 12px;
+    }
+    .ecc-card-header { display: flex; align-items: center; gap: 10px; margin-bottom: 4px; }
+    .ecc-card-header strong { font-size: 15px; }
+    .badge {
+      font-size: 12px;
+      font-weight: 600;
+      padding: 3px 10px;
+      border-radius: 20px;
+      background: #e7eef6;
+      color: var(--accent-color);
+    }
+    .ecc-msg { font-size: 14px; color: #5a7a9a; margin: 6px 0; }
+    .ecc-card-actions { display: flex; gap: 8px; margin-top: 10px; }
+
+    .empty-hint { color: #8ba3bd; font-size: 14px; padding: 10px 4px; }
+
+    @media (max-width: 640px) {
+      .corso-row, .ecc-corso-row { grid-template-columns: 1fr 1fr; }
+      .nota-row { grid-template-columns: 1fr; }
+    }
+  
   </style>
 </head>
 <body>
 
+  <!-- ============================================================
+       VISTA DISPLAY — quello che vedono i visitatori sullo schermo
+       ============================================================ -->
+  <div id="display-view">
   <header>
     <img src="CF Lampugnano blu xl.png" alt="Logo Piscina" onerror="this.style.display='none'; document.write('<h2>Piscina Lampugnano</h2>')"/>
     <div class="datetime">
@@ -250,7 +510,147 @@
     </div>
   </footer>
 
+  
+  </div>
+
+  <!-- ============================================================
+       VISTA ADMIN — raggiungibile su questa stessa pagina
+       aggiungendo #admin all'indirizzo, es:
+       tuosito.it/corsi.html#admin
+       ============================================================ -->
+  <div id="admin-view" style="display:none">
+  <!-- ====== SCHERMATA LOGIN ====== -->
+  <div id="login-screen">
+    <form class="login-card" id="login-form">
+      <h1>Amministrazione orari</h1>
+      <p class="sub">Piscina Lampugnano</p>
+      <label>Email<br><input type="email" name="email" autocomplete="username" required></label>
+      <label>Password<br><input type="password" name="password" autocomplete="current-password" required></label>
+      <button type="submit">Accedi</button>
+      <div id="login-error"></div>
+    </form>
+  </div>
+
+  <!-- ====== APP ADMIN ====== -->
+  <div id="admin-app">
+    <header class="admin-header">
+      <h1>Amministrazione orari — Piscina Lampugnano</h1>
+      <div class="header-actions">
+        <a href="corsi.html" target="_blank">Apri display ↗</a>
+        <button id="logout-btn" class="btn-secondary">Esci</button>
+      </div>
+    </header>
+
+    <nav class="tabs">
+      <button class="tab-btn active" data-tab="corsi">Corsi settimanali</button>
+      <button class="tab-btn" data-tab="eccezioni">Festività ed eccezioni</button>
+      <button class="tab-btn" data-tab="note">Note ticker</button>
+    </nav>
+
+    <main>
+      <!-- ---- TAB CORSI ---- -->
+      <section id="tab-corsi" class="tab-panel active">
+        <div class="add-card">
+          <h2>Aggiungi un corso</h2>
+          <form id="form-add-corso" class="inline-form">
+            <div class="field">
+              <label><span>Giorno</span>
+                <select name="giorno" required>
+                  <option value="">Scegli...</option>
+                  <option value="lunedì">Lunedì</option>
+                  <option value="martedì">Martedì</option>
+                  <option value="mercoledì">Mercoledì</option>
+                  <option value="giovedì">Giovedì</option>
+                  <option value="venerdì">Venerdì</option>
+                  <option value="sabato">Sabato</option>
+                  <option value="domenica">Domenica</option>
+                </select>
+              </label>
+            </div>
+            <div class="field field-grow">
+              <label><span>Attività</span><input type="text" name="attivita" placeholder="es. Corso Bambini" required></label>
+            </div>
+            <div class="field">
+              <label><span>Ingresso</span><input type="time" name="oraIngresso" required></label>
+            </div>
+            <div class="field">
+              <label><span>Inizio</span><input type="time" name="oraInizio" required></label>
+            </div>
+            <div class="field">
+              <label><span>Durata (min)</span><input type="number" name="durata" min="1" value="60" required></label>
+            </div>
+            <div class="field"><button type="submit">Aggiungi</button></div>
+          </form>
+        </div>
+
+        <div id="corsi-list"></div>
+      </section>
+
+      <!-- ---- TAB ECCEZIONI ---- -->
+      <section id="tab-eccezioni" class="tab-panel">
+        <div class="add-card">
+          <h2>Aggiungi o modifica un'eccezione</h2>
+          <p style="font-size:13px; color:#5a7a9a; margin-top:-8px;">
+            Un'eccezione vale solo per la data scelta e sostituisce il palinsesto settimanale standard di quel giorno.
+          </p>
+          <form id="form-eccezione">
+            <div class="inline-form">
+              <div class="field">
+                <label><span>Data</span><input type="date" name="data" required></label>
+              </div>
+              <div class="field">
+                <label style="display:flex; align-items:center; gap:8px; margin-top:22px;">
+                  <input type="checkbox" name="chiuso" id="ecc-chiuso"> Giornata di chiusura totale
+                </label>
+              </div>
+              <div class="field field-grow">
+                <label><span>Messaggio (facoltativo, mostrato a display)</span>
+                  <input type="text" name="messaggio" placeholder="es. Piscina chiusa per Natale">
+                </label>
+              </div>
+            </div>
+
+            <div id="ecc-corsi-wrapper">
+              <h3>Corsi speciali per questa data (lascia vuoto se è solo una chiusura)</h3>
+              <div id="ecc-corsi-rows"></div>
+              <button type="button" id="ecc-add-row" class="btn-secondary">+ Aggiungi corso a questa data</button>
+            </div>
+
+            <div style="margin-top:20px; display:flex; gap:10px;">
+              <button type="submit">Salva eccezione</button>
+              <button type="button" id="ecc-cancel-edit" class="btn-secondary" style="display:none;">Annulla modifica</button>
+            </div>
+          </form>
+        </div>
+
+        <div id="eccezioni-list"></div>
+      </section>
+
+      <!-- ---- TAB NOTE ---- -->
+      <section id="tab-note" class="tab-panel">
+        <div class="add-card">
+          <h2>Aggiungi una nota</h2>
+          <form id="form-add-nota" class="inline-form">
+            <div class="field field-grow">
+              <label><span>Testo</span><input type="text" name="testo" placeholder="es. Ricordiamo di indossare la cuffia in vasca" required></label>
+            </div>
+            <div class="field"><button type="submit">Aggiungi</button></div>
+          </form>
+        </div>
+
+        <div id="note-list"></div>
+      </section>
+    </main>
+  </div>
+
+  
+  </div>
+
   <script>
+    /* ============================================================
+       LOGICA VISTA DISPLAY
+       ============================================================ */
+
     /* ====== OROLOGIO ====== */
     function updateClock() {
       const now = new Date();
@@ -335,78 +735,108 @@
       return (h * 60) + m;
     }
 
-    function formatCell(cell) {
-      if (!cell) return "";
-      if (cell.f) return cell.f;
-      if (typeof cell.v === 'string') return cell.v;
-      if (typeof cell.v === 'number') return cell.v.toString();
-      return "";
+    /* ====== CARICAMENTO DATI ======
+       I dati arrivano da Firebase Realtime Database (non più da Google
+       Sheets né da un file statico). La pagina admin.html scrive qui i
+       corsi, le eccezioni e le note; questa pagina li legge in tempo
+       reale: quando qualcosa viene modificato dall'admin, il display si
+       aggiorna automaticamente, senza bisogno di ricaricare la pagina. */
+    let dbData = { corsi: [], eccezioni: {}, note: [] };
+    let dbReady = false;
+
+    function toArray(val) {
+      if (!val) return [];
+      return Array.isArray(val) ? val : Object.values(val);
     }
 
-    /* ====== CARICAMENTO DATI ====== */
-    async function loadAll() {
-      const SHEET_ID = '1dcs1X7x84g69f14m9Sl2KmqZUbCI6lLBBfi3QCMNqWI';
-      const SHEET_BASE = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=`;
-      
-      try {
-        /* ---- FETCH CORSI ---- */
-        const resC = await fetch(SHEET_BASE + 'Corsi');
-        if (!resC.ok) throw new Error("Network response was not ok");
-        const txtC = await resC.text();
-        const jsonC = JSON.parse(txtC.substring(47).slice(0, -2));
-        const rowsC = jsonC.table.rows.map(r => r.c.map(c => c ? formatCell(c) : ""));
+    function attachFirebaseListeners() {
+      const db = firebase.database();
 
-        const now = new Date();
-        const currentTime = now.getHours() * 60 + now.getMinutes();
-        const todayName = normalizeStr(now.toLocaleDateString('it-IT', { weekday: 'long' }));
+      db.ref('corsi').on('value', snap => {
+        dbData.corsi = toArray(snap.val());
+        dbReady = true;
+        renderAll();
+      }, err => showConnectionError(err));
 
-        let parsed = rowsC
-          .filter(r => normalizeStr(r[0]) === todayName)
-          .map(r => {
-            const ingressoMin = parseTime(r[2]);
-            const inizioMin   = parseTime(r[3]);
-            const durata      = Number.parseInt(r[4]) || 60;
-            return {
-              attivita: r[1] || '',
-              oraIngresso: r[2] || '',
-              oraInizio: r[3] || '',
-              durata,
-              ingressoMin,
-              inizioMin
-            };
-          })
-          .filter(c => Number.isFinite(c.ingressoMin) && currentTime <= (c.ingressoMin + c.durata))
-          .sort((a, b) => a.ingressoMin - b.ingressoMin);
+      db.ref('eccezioni').on('value', snap => {
+        dbData.eccezioni = snap.val() || {};
+        renderAll();
+      }, err => showConnectionError(err));
 
-        renderCourses(parsed, currentTime);
+      db.ref('note').on('value', snap => {
+        dbData.note = toArray(snap.val()).map(n => (typeof n === 'string' ? n : (n && n.testo) || ''));
+        renderAll();
+      }, err => showConnectionError(err));
+    }
 
-        /* ---- FETCH NOTE ---- */
-        const resN = await fetch(SHEET_BASE + 'Note');
-        const txtN = await resN.text();
-        const jsonN = JSON.parse(txtN.substring(47).slice(0, -2));
-        const rowsN = jsonN.table.rows.map(r => r.c.map(c => c ? formatCell(c) : ""));
-        const notesText = rowsN
-          .filter(r => r[0] && r[0].trim() !== '')
-          .map(r => r[0])
-          .join("  •  ");
-
-        updateTicker(notesText || 'Benvenuti alla Piscina Lampugnano');
-
-      } catch (err) {
-        console.error('Errore update:', err);
-        const box = document.getElementById('courses');
-        if (!box.children.length || box.innerText.includes('Caricamento')) {
-           box.innerHTML = `<div class="empty-message">⚠️ Riconnessione in corso...</div>`;
-        }
+    function showConnectionError(err) {
+      console.error('Errore Firebase:', err);
+      const box = document.getElementById('courses');
+      if (!box.children.length || box.innerText.includes('Caricamento')) {
+        box.innerHTML = `<div class="empty-message">⚠️ Riconnessione in corso...</div>`;
       }
     }
 
-    function renderCourses(courses, currentTime) {
+    function renderAll() {
+      if (!dbReady) return;
+
+      const now = new Date();
+      const currentTime = now.getHours() * 60 + now.getMinutes();
+      const todayName = normalizeStr(now.toLocaleDateString('it-IT', { weekday: 'long' }));
+      const todayISO = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+
+      // Un'eccezione per la data di oggi (festività, orario speciale, chiusura)
+      // ha sempre la precedenza sul palinsesto settimanale standard.
+      const eccezione = dbData.eccezioni[todayISO] || null;
+
+      let corsiOggi;
+      let emptyMessage = null;
+
+      if (eccezione && eccezione.chiuso) {
+        corsiOggi = [];
+        emptyMessage = eccezione.messaggio || 'Oggi la piscina è chiusa.';
+      } else if (eccezione && eccezione.corsi) {
+        corsiOggi = toArray(eccezione.corsi); // palinsesto sostitutivo per oggi
+      } else {
+        corsiOggi = dbData.corsi.filter(r => normalizeStr(r.giorno) === todayName);
+      }
+
+      let parsed = corsiOggi
+        .map(r => {
+          const ingressoMin = parseTime(r.oraIngresso);
+          const inizioMin   = parseTime(r.oraInizio);
+          const durata      = Number.parseInt(r.durata) || 60;
+          return {
+            attivita: r.attivita || '',
+            oraIngresso: r.oraIngresso || '',
+            oraInizio: r.oraInizio || '',
+            durata,
+            ingressoMin,
+            inizioMin
+          };
+        })
+        .filter(c => Number.isFinite(c.ingressoMin) && currentTime <= (c.ingressoMin + c.durata))
+        .sort((a, b) => a.ingressoMin - b.ingressoMin);
+
+      renderCourses(parsed, currentTime, emptyMessage);
+
+      /* ---- NOTE (ticker in basso) ---- */
+      const noteExtra = eccezione && eccezione.messaggio && !eccezione.chiuso ? [eccezione.messaggio] : [];
+      const notesText = [...noteExtra, ...dbData.note]
+        .filter(t => t && t.trim() !== '')
+        .join("  •  ");
+
+      updateTicker(notesText || 'Benvenuti alla Piscina Lampugnano');
+    }
+
+    function renderCourses(courses, currentTime, emptyMessage) {
         const coursesBox = document.getElementById('courses');
         let htmlContent = '';
 
         if (courses.length === 0) {
-           htmlContent = `
+           htmlContent = emptyMessage
+            ? `<div class="empty-message">🏊‍♂️ ${emptyMessage}</div>`
+            : `
             <div class="empty-message">
               🏊‍♂️ Le attività di oggi sono terminate.<br>
               <span style="font-size:30px; color:#666">Vi aspettiamo domani!</span>
@@ -491,8 +921,329 @@
         });
     }
 
-    loadAll();
-    setInterval(loadAll, 30000); 
+    attachFirebaseListeners();
+    // Ricalcola il display periodicamente: serve a far comparire/scomparire
+    // i corsi col passare del tempo anche quando i dati non cambiano.
+    setInterval(renderAll, 15000);
+  
+  </script>
+
+  <script>
+    /* ============================================================
+       LOGICA VISTA ADMIN
+       ============================================================ */
+const GIORNI = ['lunedì','martedì','mercoledì','giovedì','venerdì','sabato','domenica'];
+    let dataInitialized = false;
+    let eccezioneInEdit = null;
+
+    /* ====== AUTENTICAZIONE ====== */
+    firebase.auth().onAuthStateChanged(user => {
+      document.getElementById('login-screen').style.display = user ? 'none' : 'flex';
+      document.getElementById('admin-app').style.display = user ? 'block' : 'none';
+      if (user) initData();
+    });
+
+    document.getElementById('login-form').addEventListener('submit', e => {
+      e.preventDefault();
+      const f = e.target;
+      const errBox = document.getElementById('login-error');
+      errBox.textContent = '';
+      firebase.auth().signInWithEmailAndPassword(f.email.value, f.password.value)
+        .catch(() => { errBox.textContent = 'Accesso non riuscito: email o password errate.'; });
+    });
+
+    document.getElementById('logout-btn').addEventListener('click', () => firebase.auth().signOut());
+
+    /* ====== TABS ====== */
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+        btn.classList.add('active');
+        document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+      });
+    });
+
+    /* ====== UTILS ====== */
+    function toArrayLocal(val) {
+      if (!val) return [];
+      return Array.isArray(val) ? val : Object.values(val);
+    }
+    function capitalize(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
+    function escapeAttr(s) {
+      return String(s || '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+    }
+    function escapeHtml(s) {
+      return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    }
+    function formatDateIt(iso) {
+      const [y, m, d] = iso.split('-');
+      return `${d}/${m}/${y}`;
+    }
+    function flashSaved(el) {
+      el.classList.add('saved-flash');
+      setTimeout(() => el.classList.remove('saved-flash'), 900);
+    }
+
+    function initData() {
+      if (dataInitialized) return; // evita di riattaccare i listener a ogni login
+      dataInitialized = true;
+      initCorsi();
+      initEccezioni();
+      initNote();
+    }
+
+    /* ====== CORSI SETTIMANALI ====== */
+    function initCorsi() {
+      const db = firebase.database();
+      db.ref('corsi').on('value', snap => renderCorsiList(snap.val() || {}));
+
+      document.getElementById('form-add-corso').addEventListener('submit', e => {
+        e.preventDefault();
+        const f = e.target;
+        db.ref('corsi').push({
+          giorno: f.giorno.value,
+          attivita: f.attivita.value.trim(),
+          oraIngresso: f.oraIngresso.value,
+          oraInizio: f.oraInizio.value,
+          durata: parseInt(f.durata.value, 10) || 60
+        }).then(() => f.reset());
+      });
+    }
+
+    function renderCorsiList(corsiObj) {
+      const container = document.getElementById('corsi-list');
+      container.innerHTML = '';
+      const db = firebase.database();
+
+      if (Object.keys(corsiObj).length === 0) {
+        container.innerHTML = '<p class="empty-hint">Nessun corso inserito. Aggiungine uno dal modulo qui sopra.</p>';
+        return;
+      }
+
+      GIORNI.forEach(giorno => {
+        const entries = Object.entries(corsiObj).filter(([, c]) => c.giorno === giorno);
+        if (entries.length === 0) return;
+        entries.sort((a, b) => (a[1].oraIngresso || '').localeCompare(b[1].oraIngresso || ''));
+
+        const groupEl = document.createElement('div');
+        groupEl.className = 'day-group';
+        groupEl.innerHTML = `<h3>${capitalize(giorno)}</h3>`;
+        const rowsWrap = document.createElement('div');
+
+        entries.forEach(([id, c]) => {
+          const row = document.createElement('div');
+          row.className = 'corso-row';
+          row.innerHTML = `
+            <input type="text" value="${escapeAttr(c.attivita)}" data-field="attivita">
+            <input type="time" value="${c.oraIngresso || ''}" data-field="oraIngresso">
+            <input type="time" value="${c.oraInizio || ''}" data-field="oraInizio">
+            <input type="number" min="1" value="${c.durata || 60}" data-field="durata">
+            <button type="button" class="btn-secondary btn-save">Salva</button>
+            <button type="button" class="btn-delete">Elimina</button>
+          `;
+          row.querySelector('.btn-save').addEventListener('click', () => {
+            db.ref('corsi/' + id).set({
+              giorno,
+              attivita: row.querySelector('[data-field="attivita"]').value.trim(),
+              oraIngresso: row.querySelector('[data-field="oraIngresso"]').value,
+              oraInizio: row.querySelector('[data-field="oraInizio"]').value,
+              durata: parseInt(row.querySelector('[data-field="durata"]').value, 10) || 60
+            });
+            flashSaved(row);
+          });
+          row.querySelector('.btn-delete').addEventListener('click', () => {
+            if (confirm(`Eliminare "${c.attivita}" (${capitalize(giorno)})?`)) db.ref('corsi/' + id).remove();
+          });
+          rowsWrap.appendChild(row);
+        });
+
+        groupEl.appendChild(rowsWrap);
+        container.appendChild(groupEl);
+      });
+    }
+
+    /* ====== ECCEZIONI (FESTIVITÀ / ORARI SPECIALI) ====== */
+    function initEccezioni() {
+      const db = firebase.database();
+      db.ref('eccezioni').on('value', snap => renderEccezioniList(snap.val() || {}));
+
+      document.getElementById('ecc-chiuso').addEventListener('change', e => {
+        document.getElementById('ecc-corsi-wrapper').style.display = e.target.checked ? 'none' : 'block';
+      });
+
+      document.getElementById('ecc-add-row').addEventListener('click', () => addEccCorsoRow());
+      document.getElementById('ecc-cancel-edit').addEventListener('click', cancelEccEdit);
+
+      document.getElementById('form-eccezione').addEventListener('submit', e => {
+        e.preventDefault();
+        const f = e.target;
+        const data = f.data.value;
+        if (!data) return;
+
+        const chiuso = f.chiuso.checked;
+        const messaggio = f.messaggio.value.trim();
+        const payload = {};
+        if (messaggio) payload.messaggio = messaggio;
+
+        if (chiuso) {
+          payload.chiuso = true;
+        } else {
+          const corsi = [];
+          document.querySelectorAll('#ecc-corsi-rows .ecc-corso-row').forEach(row => {
+            const attivita = row.querySelector('[data-field="attivita"]').value.trim();
+            const oraIngresso = row.querySelector('[data-field="oraIngresso"]').value;
+            const oraInizio = row.querySelector('[data-field="oraInizio"]').value;
+            const durata = parseInt(row.querySelector('[data-field="durata"]').value, 10) || 60;
+            if (attivita && oraIngresso) {
+              corsi.push({ attivita, oraIngresso, oraInizio: oraInizio || oraIngresso, durata });
+            }
+          });
+          if (corsi.length) payload.corsi = corsi;
+        }
+
+        const previousId = eccezioneInEdit;
+        db.ref('eccezioni/' + data).set(payload).then(() => {
+          if (previousId && previousId !== data) db.ref('eccezioni/' + previousId).remove();
+          cancelEccEdit();
+        });
+      });
+    }
+
+    function cancelEccEdit() {
+      eccezioneInEdit = null;
+      const f = document.getElementById('form-eccezione');
+      f.reset();
+      document.getElementById('ecc-corsi-rows').innerHTML = '';
+      document.getElementById('ecc-corsi-wrapper').style.display = 'block';
+      document.getElementById('ecc-cancel-edit').style.display = 'none';
+    }
+
+    function addEccCorsoRow(prefill) {
+      const wrapper = document.getElementById('ecc-corsi-rows');
+      const row = document.createElement('div');
+      row.className = 'ecc-corso-row';
+      row.innerHTML = `
+        <input type="text" placeholder="Attività" data-field="attivita" value="${prefill ? escapeAttr(prefill.attivita) : ''}">
+        <input type="time" data-field="oraIngresso" value="${prefill ? (prefill.oraIngresso || '') : ''}">
+        <input type="time" data-field="oraInizio" value="${prefill ? (prefill.oraInizio || '') : ''}">
+        <input type="number" min="1" data-field="durata" value="${prefill ? (prefill.durata || 60) : 60}">
+        <button type="button" class="btn-remove-row">×</button>
+      `;
+      row.querySelector('.btn-remove-row').addEventListener('click', () => row.remove());
+      wrapper.appendChild(row);
+    }
+
+    function renderEccezioniList(eccObj) {
+      const container = document.getElementById('eccezioni-list');
+      container.innerHTML = '';
+      const db = firebase.database();
+
+      const dates = Object.keys(eccObj).sort();
+      if (dates.length === 0) {
+        container.innerHTML = '<p class="empty-hint">Nessuna eccezione impostata.</p>';
+        return;
+      }
+
+      dates.forEach(data => {
+        const ecc = eccObj[data];
+        const tipo = ecc.chiuso ? 'Chiusura totale' : (ecc.corsi ? 'Orario speciale' : 'Solo messaggio');
+        const card = document.createElement('div');
+        card.className = 'ecc-card';
+        card.innerHTML = `
+          <div class="ecc-card-header">
+            <strong>${formatDateIt(data)}</strong>
+            <span class="badge">${tipo}</span>
+          </div>
+          ${ecc.messaggio ? `<p class="ecc-msg">${escapeHtml(ecc.messaggio)}</p>` : ''}
+          <div class="ecc-card-actions">
+            <button type="button" class="btn-edit">Modifica</button>
+            <button type="button" class="btn-delete">Elimina</button>
+          </div>
+        `;
+        card.querySelector('.btn-edit').addEventListener('click', () => loadEccezioneIntoForm(data, ecc));
+        card.querySelector('.btn-delete').addEventListener('click', () => {
+          if (confirm(`Eliminare l'eccezione del ${formatDateIt(data)}?`)) db.ref('eccezioni/' + data).remove();
+        });
+        container.appendChild(card);
+      });
+    }
+
+    function loadEccezioneIntoForm(data, ecc) {
+      const f = document.getElementById('form-eccezione');
+      f.data.value = data;
+      f.chiuso.checked = !!ecc.chiuso;
+      f.messaggio.value = ecc.messaggio || '';
+      document.getElementById('ecc-corsi-wrapper').style.display = ecc.chiuso ? 'none' : 'block';
+      document.getElementById('ecc-corsi-rows').innerHTML = '';
+      toArrayLocal(ecc.corsi).forEach(c => addEccCorsoRow(c));
+      eccezioneInEdit = data;
+      document.getElementById('ecc-cancel-edit').style.display = 'inline-block';
+      document.querySelector('[data-tab="eccezioni"]').click();
+      f.scrollIntoView({ behavior: 'smooth' });
+    }
+
+    /* ====== NOTE TICKER ====== */
+    function initNote() {
+      const db = firebase.database();
+      db.ref('note').on('value', snap => renderNoteList(snap.val() || {}));
+
+      document.getElementById('form-add-nota').addEventListener('submit', e => {
+        e.preventDefault();
+        const f = e.target;
+        const testo = f.testo.value.trim();
+        if (!testo) return;
+        db.ref('note').push({ testo }).then(() => f.reset());
+      });
+    }
+
+    function renderNoteList(noteObj) {
+      const container = document.getElementById('note-list');
+      container.innerHTML = '';
+      const db = firebase.database();
+      const entries = Object.entries(noteObj);
+
+      if (entries.length === 0) {
+        container.innerHTML = '<p class="empty-hint">Nessuna nota inserita.</p>';
+        return;
+      }
+
+      entries.forEach(([id, n]) => {
+        const testo = typeof n === 'string' ? n : (n.testo || '');
+        const row = document.createElement('div');
+        row.className = 'nota-row';
+        row.innerHTML = `
+          <input type="text" value="${escapeAttr(testo)}" data-field="testo">
+          <button type="button" class="btn-secondary btn-save">Salva</button>
+          <button type="button" class="btn-delete">Elimina</button>
+        `;
+        row.querySelector('.btn-save').addEventListener('click', () => {
+          db.ref('note/' + id).set({ testo: row.querySelector('[data-field="testo"]').value.trim() });
+          flashSaved(row);
+        });
+        row.querySelector('.btn-delete').addEventListener('click', () => {
+          if (confirm('Eliminare questa nota?')) db.ref('note/' + id).remove();
+        });
+        container.appendChild(row);
+      });
+    }
+  
+  </script>
+
+  <script>
+    /* ============================================================
+       ROUTING: mostra la vista display o la vista admin a seconda
+       che l'indirizzo finisca con #admin oppure no. Non serve alcuna
+       configurazione sul server: è tutto gestito dentro questo
+       stesso file.
+       ============================================================ */
+    function route() {
+      const isAdmin = window.location.hash === '#admin';
+      document.getElementById('display-view').style.display = isAdmin ? 'none' : 'flex';
+      document.getElementById('admin-view').style.display = isAdmin ? 'block' : 'none';
+    }
+    window.addEventListener('hashchange', route);
+    route();
   </script>
 </body>
 </html>
