@@ -216,7 +216,14 @@
       box-shadow: 0 6px 10px rgba(0,0,0,0.06);
       width: 100%;
       position: relative;
-      transition: all 0.3s ease;
+      opacity: 1;
+      transform: translateY(0) scale(1);
+      transition: background-color 0.6s ease, border-left-color 0.6s ease,
+                  opacity 0.5s ease, transform 0.5s ease, box-shadow 0.3s ease;
+    }
+    .course.course-enter {
+      opacity: 0;
+      transform: translateY(18px) scale(0.98);
     }
     .course > div {
       padding: 25px 35px; /* Box un po' più ariosi */
@@ -1066,7 +1073,21 @@
         return;
       }
 
-      const boxesHtml = activeCourses.map(corso => {
+      // Assicura che la struttura base (etichetta + riga corsi) esista già;
+      // la crea solo la prima volta, così non viene ridisegnata da zero a
+      // ogni giro (necessario per poter animare i singoli box).
+      let row = banner.querySelector('.courses-row');
+      if (!row) {
+        banner.innerHTML = `<span class="active-label">In corso ora</span><div class="courses-row"></div>`;
+        row = banner.querySelector('.courses-row');
+      }
+
+      const seenKeys = new Set();
+
+      activeCourses.forEach(corso => {
+        const key = `${corso.attivita}|${corso.oraIngresso}`;
+        seenKeys.add(key);
+
         const isNuotoLibero = corso.attivita && corso.attivita.toLowerCase().includes('nuoto libero');
         const ultimoIngressoMin = isNuotoLibero && corso.ultimoIngresso ? parseTime(corso.ultimoIngresso) : NaN;
         const ultimoIngressoPassato = Number.isFinite(ultimoIngressoMin) && currentTime >= ultimoIngressoMin;
@@ -1081,8 +1102,7 @@
 
         const style = ultimoIngressoPassato ? 'red' : 'green';
 
-        return `
-        <div class="course compact ${style}">
+        const innerHtml = `
           <div class="attivita">${corso.attivita}</div>
           <div class="dettagli">
             ${ultimoIngressoHtml}
@@ -1091,94 +1111,152 @@
               <span class="info-time">${corso.oraFine}</span>
             </div>
           </div>
-        </div>
-      `;
-      }).join('');
+        `;
 
-      banner.innerHTML = `<span class="active-label">In corso ora</span><div class="courses-row">${boxesHtml}</div>`;
+        let el = row.querySelector(`[data-key="${cssEscapeKey(key)}"]`);
+        const isNew = !el;
+        if (isNew) {
+          el = document.createElement('div');
+          el.dataset.key = key;
+          el.classList.add('course', 'compact', 'course-enter');
+        }
+        el.className = `course compact ${style}` + (isNew ? ' course-enter' : '');
+        el.innerHTML = innerHtml;
+        row.appendChild(el);
+
+        if (isNew) {
+          requestAnimationFrame(() => {
+            requestAnimationFrame(() => el.classList.remove('course-enter'));
+          });
+        }
+      });
+
+      Array.from(row.children).forEach(child => {
+        if (child.dataset && child.dataset.key && !seenKeys.has(child.dataset.key)) {
+          child.remove();
+        }
+      });
+
       document.documentElement.style.setProperty('--active-banner-height', '195px');
     }
 
     function renderCourses(courses, currentTime, emptyMessage, maxVisible) {
         const coursesBox = document.getElementById('courses');
-        let htmlContent = '';
         maxVisible = maxVisible || 4;
 
         if (courses.length === 0) {
-           htmlContent = emptyMessage
+           coursesBox.innerHTML = emptyMessage
             ? `<div class="empty-message">🏊‍♂️ ${emptyMessage}</div>`
             : `
             <div class="empty-message">
               🏊‍♂️ Le attività di oggi sono terminate.<br>
               <span style="font-size:30px; color:#666">Vi aspettiamo domani!</span>
             </div>`;
-        } else {
-          // Qui arrivano solo corsi non ancora iniziati (quelli già in corso
-          // sono mostrati a parte nel banner "in corso ora").
-          const visible = courses.slice(0, maxVisible);
+          return;
+        }
 
-          visible.forEach(corso => {
-            const ingressoAperto = currentTime >= corso.ingressoMin;
-            let style = 'gray';
-            let ingressoHtml;
-            let inizioHtml;
+        // Qui arrivano solo corsi non ancora iniziati (quelli già in corso
+        // sono mostrati a parte nel banner "in corso ora").
+        const visible = courses.slice(0, maxVisible);
+        const seenKeys = new Set();
 
-            if (!ingressoAperto) {
-              // L'ingresso non è ancora aperto: grigio, poi giallo con
-              // countdown negli ultimi 5 minuti prima dell'ingresso.
-              const timeToIngresso = corso.ingressoMin - currentTime;
-              if (timeToIngresso <= 5) {
-                style = 'yellow';
-                const [h, m] = corso.oraIngresso.split(':').map(Number);
-                const targetDate = new Date();
-                targetDate.setHours(h, m, 0, 0);
-                ingressoHtml = `
-                    <span class="info-label" style="color: #d32f2f;">Ingresso tra</span>
-                    <span class="info-time live-countdown" data-target="${targetDate.getTime()}" data-original="${corso.oraIngresso}">--:--</span>
-                `;
-              } else {
-                ingressoHtml = `
-                    <span class="info-label">Ingresso</span>
-                    <span class="info-time">${corso.oraIngresso}</span>
-                `;
-              }
-              inizioHtml = `
-                  <span class="info-label">Inizio</span>
-                  <span class="info-time">${corso.oraInizio}</span>
+        visible.forEach(corso => {
+          const key = `${corso.attivita}|${corso.oraIngresso}`;
+          seenKeys.add(key);
+
+          const ingressoAperto = currentTime >= corso.ingressoMin;
+          let style = 'gray';
+          let ingressoHtml;
+          let inizioHtml;
+
+          if (!ingressoAperto) {
+            // L'ingresso non è ancora aperto: grigio, poi giallo con
+            // countdown negli ultimi 5 minuti prima dell'ingresso.
+            const timeToIngresso = corso.ingressoMin - currentTime;
+            if (timeToIngresso <= 5) {
+              style = 'yellow';
+              const [h, m] = corso.oraIngresso.split(':').map(Number);
+              const targetDate = new Date();
+              targetDate.setHours(h, m, 0, 0);
+              ingressoHtml = `
+                  <span class="info-label" style="color: #d32f2f;">Ingresso tra</span>
+                  <span class="info-time live-countdown" data-target="${targetDate.getTime()}" data-original="${corso.oraIngresso}">--:--</span>
               `;
             } else {
-              // L'ingresso è aperto: il box diventa verde e resta così,
-              // ancora nella schermata principale, finché non scatta
-              // l'orario di inizio — a quel punto si sposta (già verde)
-              // nel banner "in corso ora".
-              style = 'green';
               ingressoHtml = `
                   <span class="info-label">Ingresso</span>
-                  <span class="info-time">Aperto</span>
-              `;
-              inizioHtml = `
-                  <span class="info-label">Inizio</span>
-                  <span class="info-time">${corso.oraInizio}</span>
+                  <span class="info-time">${corso.oraIngresso}</span>
               `;
             }
-
-            htmlContent += `
-              <div class="course ${style}">
-                <div class="attivita">${corso.attivita}</div>
-                <div class="dettagli">
-                    <div class="info-box">
-                        ${ingressoHtml}
-                    </div>
-                    <div class="info-box">
-                        ${inizioHtml}
-                    </div>
-                </div>
-              </div>
+            inizioHtml = `
+                <span class="info-label">Inizio</span>
+                <span class="info-time">${corso.oraInizio}</span>
             `;
-          });
-        }
-        coursesBox.innerHTML = htmlContent;
+          } else {
+            // L'ingresso è aperto: il box diventa verde e resta così,
+            // ancora nella schermata principale, finché non scatta
+            // l'orario di inizio — a quel punto si sposta (già verde)
+            // nel banner "in corso ora".
+            style = 'green';
+            ingressoHtml = `
+                <span class="info-label">Ingresso</span>
+                <span class="info-time">Aperto</span>
+            `;
+            inizioHtml = `
+                <span class="info-label">Inizio</span>
+                <span class="info-time">${corso.oraInizio}</span>
+            `;
+          }
+
+          const innerHtml = `
+            <div class="attivita">${corso.attivita}</div>
+            <div class="dettagli">
+                <div class="info-box">
+                    ${ingressoHtml}
+                </div>
+                <div class="info-box">
+                    ${inizioHtml}
+                </div>
+            </div>
+          `;
+
+          // Riusa il box esistente per questo corso, se c'è già: così il
+          // cambio di colore (grigio->giallo->verde) è una transizione CSS
+          // morbida sullo stesso elemento, non un salto secco tra due box
+          // diversi.
+          let el = coursesBox.querySelector(`[data-key="${cssEscapeKey(key)}"]`);
+          const isNew = !el;
+          if (isNew) {
+            el = document.createElement('div');
+            el.dataset.key = key;
+            el.classList.add('course', 'course-enter');
+          }
+          el.className = `course ${style}` + (isNew ? ' course-enter' : '');
+          el.innerHTML = innerHtml;
+          coursesBox.appendChild(el); // (ri)posiziona in fondo, mantenendo l'ordine di visite
+
+          if (isNew) {
+            requestAnimationFrame(() => {
+              requestAnimationFrame(() => el.classList.remove('course-enter'));
+            });
+          }
+        });
+
+        // Rimuovi i box di corsi che non sono più tra quelli da mostrare
+        // (es. spostati nel banner, oppure usciti dai primi N in elenco).
+        Array.from(coursesBox.children).forEach(child => {
+          if (child.dataset && child.dataset.key && !seenKeys.has(child.dataset.key)) {
+            child.remove();
+          }
+        });
+
         updateCountdowns(); // Aggiorna i contatori istantaneamente
+    }
+
+    // Genera una chiave CSS valida per il selettore data-key, indipendentemente
+    // da spazi o caratteri speciali nel nome dell'attività.
+    function cssEscapeKey(key) {
+      return (window.CSS && CSS.escape) ? CSS.escape(key) : key.replace(/["\\\]]/g, '\\$&');
     }
 
     function updateTicker(items) {
