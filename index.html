@@ -180,7 +180,11 @@
       border-radius: 8px;
     }
     #active-banner .course.compact {
-      flex: 1;
+      /* Larghezza fissa, calcolata come se ci fossero sempre 3 corsi attivi
+         affiancati (in proporzione alla riga, con 20px di distacco tra un
+         box e l'altro): con 1 o 2 corsi attivi restano di questa stessa
+         misura, invece di allargarsi per riempire lo spazio libero. */
+      flex: 0 0 calc((100% - 40px) / 3);
     }
     #active-banner .course.compact .attivita { font-size: 34px; padding-top: 6px; }
     #active-banner .course.compact .info-label { font-size: 15px; margin-bottom: 3px; }
