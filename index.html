@@ -473,7 +473,7 @@
     }
     .corso-row, .nota-row {
       display: grid;
-      grid-template-columns: 2fr 110px 110px 110px 130px auto auto;
+      grid-template-columns: 2fr 110px 110px 110px 130px auto auto auto;
       gap: 10px;
       align-items: center;
       background: #fff;
@@ -486,6 +486,30 @@
     .nota-row { grid-template-columns: 1fr auto auto; }
     .corso-row input, .nota-row input { width: 100%; }
     .saved-flash { background-color: #d1e7dd !important; }
+
+    .duplicate-panel {
+      background: #eef4fb;
+      border: 1px dashed var(--border-color);
+      border-radius: 10px;
+      padding: 12px 16px;
+      margin: -2px 0 10px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 12px;
+    }
+    .duplicate-panel .day-checks { display: flex; flex-wrap: wrap; gap: 12px; }
+    .duplicate-panel label {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--primary-color);
+      cursor: pointer;
+    }
+    .duplicate-panel button { padding: 7px 14px; font-size: 13px; }
+    .duplicate-feedback { font-size: 13px; font-weight: 600; color: var(--success-color); }
 
     .ecc-corso-row {
       display: grid;
@@ -543,8 +567,7 @@
 
   <!-- ====== NUOVO: BANNER PUBBLICITARIO ====== -->
   <div id="ad-banner">
-    <!-- Inserisci qui il nome del file della tua foto -->
-    <img src="banner.jpg" alt="Pubblicità" onerror="this.style.display='none'; this.parentNode.innerHTML='<div class=\'empty-message\'>Spazio Pubblicitario</div>';"/>
+    <img id="ad-banner-img" alt="Pubblicità" />
   </div>
 
   <div class="container">
@@ -597,6 +620,7 @@
       <button class="tab-btn active" data-tab="corsi">Corsi settimanali</button>
       <button class="tab-btn" data-tab="eccezioni">Festività ed eccezioni</button>
       <button class="tab-btn" data-tab="note">Note ticker</button>
+      <button class="tab-btn" data-tab="banner">Banner pubblicitario</button>
     </nav>
 
     <main>
@@ -695,6 +719,37 @@
 
         <div id="note-list"></div>
       </section>
+
+      <!-- ---- TAB BANNER ---- -->
+      <section id="tab-banner" class="tab-panel">
+        <div class="add-card">
+          <h2>Banner pubblicitario</h2>
+          <p style="font-size:13px; color:#5a7a9a; margin-top:-8px;">
+            L'immagine scende sopra i corsi ogni 2-3 minuti per qualche secondo. Puoi caricarla o toglierla in
+            qualsiasi momento, senza toccare il codice.
+          </p>
+
+          <label style="display:flex; align-items:center; gap:10px; margin:18px 0;">
+            <input type="checkbox" id="banner-attivo-toggle">
+            <span style="font-weight:600;">Banner attivo</span>
+          </label>
+
+          <div class="field">
+            <label><span>Carica immagine</span>
+              <input type="file" id="banner-file-input" accept="image/*">
+            </label>
+          </div>
+          <p id="banner-upload-status" style="font-size:13px; color:#5a7a9a; min-height:18px;"></p>
+
+          <div id="banner-preview-wrap" style="display:none; margin-top:14px;">
+            <p style="font-size:13px; font-weight:600; color:#5a7a9a; margin-bottom:8px;">Immagine attuale:</p>
+            <img id="banner-preview-img" style="max-width:100%; max-height:260px; border-radius:10px; box-shadow:0 2px 10px rgba(0,0,0,0.1);">
+            <div style="margin-top:12px;">
+              <button type="button" id="banner-remove-btn" class="btn-delete">Rimuovi immagine</button>
+            </div>
+          </div>
+        </div>
+      </section>
     </main>
   </div>
 
@@ -760,6 +815,10 @@
     const AD_DURATION_MS = 10 * 1000;      // 10 secondi
 
     function runAdCycle() {
+      // Il banner parte solo se è stato attivato dall'admin ed è stata
+      // caricata un'immagine; altrimenti il ciclo non fa nulla.
+      if (!dbData.bannerAttivo || !dbData.bannerImage) return;
+
       // 1. Fai scendere il banner e mostra l'overlay scuro (se presente)
       if (adBanner) adBanner.classList.add('show');
       if (overlay) overlay.classList.add('show');
@@ -796,7 +855,7 @@
        corsi, le eccezioni e le note; questa pagina li legge in tempo
        reale: quando qualcosa viene modificato dall'admin, il display si
        aggiorna automaticamente, senza bisogno di ricaricare la pagina. */
-    let dbData = { corsi: [], eccezioni: {}, note: [] };
+    let dbData = { corsi: [], eccezioni: {}, note: [], bannerImage: '', bannerAttivo: false };
     let dbReady = false;
 
     function toArray(val) {
@@ -821,6 +880,14 @@
       db.ref('note').on('value', snap => {
         dbData.note = toArray(snap.val()).map(n => (typeof n === 'string' ? n : (n && n.testo) || ''));
         renderAll();
+      }, err => showConnectionError(err));
+
+      db.ref('impostazioni').on('value', snap => {
+        const val = snap.val() || {};
+        dbData.bannerImage = val.bannerImage || '';
+        dbData.bannerAttivo = !!val.bannerAttivo;
+        const img = document.getElementById('ad-banner-img');
+        if (img) img.src = dbData.bannerImage || '';
       }, err => showConnectionError(err));
     }
 
@@ -1118,6 +1185,7 @@ const GIORNI = ['lunedì','martedì','mercoledì','giovedì','venerdì','sabato'
       initCorsi();
       initEccezioni();
       initNote();
+      initBanner();
     }
 
     /* ====== CORSI SETTIMANALI ====== */
@@ -1169,6 +1237,7 @@ const GIORNI = ['lunedì','martedì','mercoledì','giovedì','venerdì','sabato'
             <input type="time" value="${resolveOraFine(c)}" data-field="oraFine">
             <input type="time" value="${c.ultimoIngresso || ''}" data-field="ultimoIngresso" title="Ultimo ingresso (solo nuoto libero)">
             <button type="button" class="btn-secondary btn-save">Salva</button>
+            <button type="button" class="btn-secondary btn-duplicate">Duplica</button>
             <button type="button" class="btn-delete">Elimina</button>
           `;
           row.querySelector('.btn-save').addEventListener('click', () => {
@@ -1185,12 +1254,72 @@ const GIORNI = ['lunedì','martedì','mercoledì','giovedì','venerdì','sabato'
           row.querySelector('.btn-delete').addEventListener('click', () => {
             if (confirm(`Eliminare "${c.attivita}" (${capitalize(giorno)})?`)) db.ref('corsi/' + id).remove();
           });
+
+          const duplicatePanel = buildDuplicatePanel(row, giorno, () => ({
+            attivita: row.querySelector('[data-field="attivita"]').value.trim(),
+            oraIngresso: row.querySelector('[data-field="oraIngresso"]').value,
+            oraInizio: row.querySelector('[data-field="oraInizio"]').value,
+            oraFine: row.querySelector('[data-field="oraFine"]').value,
+            ultimoIngresso: row.querySelector('[data-field="ultimoIngresso"]').value
+          }));
+          row.querySelector('.btn-duplicate').addEventListener('click', () => {
+            duplicatePanel.style.display = duplicatePanel.style.display === 'none' ? 'flex' : 'none';
+          });
+
           rowsWrap.appendChild(row);
+          rowsWrap.appendChild(duplicatePanel);
         });
 
         groupEl.appendChild(rowsWrap);
         container.appendChild(groupEl);
       });
+    }
+
+    // Costruisce il pannello a comparsa con le caselle dei giorni per
+    // duplicare un corso. getCorsoData() legge i valori AGGIORNATI dai
+    // campi della riga (così se li modifichi prima di duplicare, copia
+    // quelli nuovi, non quelli originali).
+    function buildDuplicatePanel(row, giornoOrigine, getCorsoData) {
+      const panel = document.createElement('div');
+      panel.className = 'duplicate-panel';
+      panel.style.display = 'none';
+
+      const altriGiorni = GIORNI.filter(g => g !== giornoOrigine);
+      const checksHtml = altriGiorni.map(g => `
+        <label><input type="checkbox" value="${g}"> ${capitalize(g)}</label>
+      `).join('');
+
+      panel.innerHTML = `
+        <span style="font-size:13px; font-weight:600; color:#5a7a9a;">Duplica anche su:</span>
+        <div class="day-checks">${checksHtml}</div>
+        <button type="button" class="btn-confirm-duplicate">Copia</button>
+        <button type="button" class="btn-secondary btn-cancel-duplicate">Annulla</button>
+        <span class="duplicate-feedback"></span>
+      `;
+
+      panel.querySelector('.btn-cancel-duplicate').addEventListener('click', () => {
+        panel.style.display = 'none';
+        panel.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = false);
+      });
+
+      panel.querySelector('.btn-confirm-duplicate').addEventListener('click', () => {
+        const db = firebase.database();
+        const selected = Array.from(panel.querySelectorAll('input[type="checkbox"]:checked')).map(cb => cb.value);
+        const feedback = panel.querySelector('.duplicate-feedback');
+        if (selected.length === 0) {
+          feedback.textContent = 'Seleziona almeno un giorno.';
+          return;
+        }
+        const dati = getCorsoData();
+        selected.forEach(giornoDestinazione => {
+          db.ref('corsi').push({ ...dati, giorno: giornoDestinazione });
+        });
+        feedback.textContent = `Copiato su ${selected.length} giorno/i ✓`;
+        panel.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = false);
+        setTimeout(() => { feedback.textContent = ''; panel.style.display = 'none'; }, 1500);
+      });
+
+      return panel;
     }
 
     /* ====== ECCEZIONI (FESTIVITÀ / ORARI SPECIALI) ====== */
@@ -1357,6 +1486,89 @@ const GIORNI = ['lunedì','martedì','mercoledì','giovedì','venerdì','sabato'
           if (confirm('Eliminare questa nota?')) db.ref('note/' + id).remove();
         });
         container.appendChild(row);
+      });
+    }
+
+    /* ====== BANNER PUBBLICITARIO ====== */
+    function initBanner() {
+      const db = firebase.database();
+      const toggle = document.getElementById('banner-attivo-toggle');
+      const fileInput = document.getElementById('banner-file-input');
+      const status = document.getElementById('banner-upload-status');
+      const previewWrap = document.getElementById('banner-preview-wrap');
+      const previewImg = document.getElementById('banner-preview-img');
+      const removeBtn = document.getElementById('banner-remove-btn');
+
+      db.ref('impostazioni').on('value', snap => {
+        const val = snap.val() || {};
+        toggle.checked = !!val.bannerAttivo;
+        if (val.bannerImage) {
+          previewImg.src = val.bannerImage;
+          previewWrap.style.display = 'block';
+        } else {
+          previewWrap.style.display = 'none';
+        }
+      });
+
+      toggle.addEventListener('change', () => {
+        db.ref('impostazioni/bannerAttivo').set(toggle.checked);
+      });
+
+      fileInput.addEventListener('change', () => {
+        const file = fileInput.files[0];
+        if (!file) return;
+        if (!file.type.startsWith('image/')) {
+          status.textContent = 'Il file scelto non è un\'immagine.';
+          return;
+        }
+        status.textContent = 'Caricamento in corso...';
+
+        resizeImageToDataUrl(file, 1600, 0.82).then(dataUrl => {
+          const sizeKB = Math.round(dataUrl.length / 1024);
+          db.ref('impostazioni/bannerImage').set(dataUrl).then(() => {
+            status.textContent = `Immagine caricata (${sizeKB} KB) ✓`;
+            fileInput.value = '';
+            setTimeout(() => { status.textContent = ''; }, 2500);
+          }).catch(err => {
+            console.error(err);
+            status.textContent = 'Errore nel salvataggio su Firebase. Riprova.';
+          });
+        }).catch(err => {
+          console.error(err);
+          status.textContent = 'Errore nella lettura dell\'immagine. Riprova con un altro file.';
+        });
+      });
+
+      removeBtn.addEventListener('click', () => {
+        if (confirm('Rimuovere l\'immagine pubblicitaria attuale?')) {
+          db.ref('impostazioni/bannerImage').remove();
+        }
+      });
+    }
+
+    // Ridimensiona e comprime l'immagine caricata prima di salvarla nel
+    // database: una foto fatta con lo smartphone può pesare diversi MB,
+    // così invece diventa un file leggero e veloce da sincronizzare col
+    // display, senza bisogno di un servizio di hosting immagini a parte.
+    function resizeImageToDataUrl(file, maxWidth, quality) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onerror = () => reject(new Error('Lettura file fallita'));
+        reader.onload = () => {
+          const img = new Image();
+          img.onerror = () => reject(new Error('Immagine non valida'));
+          img.onload = () => {
+            const scale = Math.min(1, maxWidth / img.width);
+            const canvas = document.createElement('canvas');
+            canvas.width = Math.round(img.width * scale);
+            canvas.height = Math.round(img.height * scale);
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+            resolve(canvas.toDataURL('image/jpeg', quality));
+          };
+          img.src = reader.result;
+        };
+        reader.readAsDataURL(file);
       });
     }
   
