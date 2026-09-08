@@ -414,7 +414,7 @@
       display: flex;
       gap: 4px;
       padding: 20px 28px 0;
-      max-width: 900px;
+      max-width: 1400px;
       margin: 0 auto;
     }
     .tab-btn {
@@ -432,7 +432,7 @@
     }
 
     main {
-      max-width: 900px;
+      max-width: 1400px;
       margin: 0 auto;
       padding: 24px 28px 60px;
     }
@@ -486,6 +486,20 @@
     .nota-row { grid-template-columns: 1fr auto auto; }
     .corso-row input, .nota-row input { width: 100%; }
     .saved-flash { background-color: #d1e7dd !important; }
+
+    .corso-row-header {
+      background: transparent;
+      box-shadow: none;
+      padding: 0 14px 4px;
+      margin-bottom: 4px;
+    }
+    .corso-row-header span {
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: #8ba3bd;
+    }
 
     .duplicate-panel {
       background: #eef4fb;
@@ -1288,7 +1302,19 @@ const GIORNI = ['lunedì','martedì','mercoledì','giovedì','venerdì','sabato'
 
         const groupEl = document.createElement('div');
         groupEl.className = 'day-group';
-        groupEl.innerHTML = `<h3>${capitalize(giorno)}</h3>`;
+        groupEl.innerHTML = `
+          <h3>${capitalize(giorno)}</h3>
+          <div class="corso-row corso-row-header">
+            <span>Attività</span>
+            <span>Ingresso</span>
+            <span>Inizio</span>
+            <span>Fine</span>
+            <span>Ultimo ingresso</span>
+            <span></span>
+            <span></span>
+            <span></span>
+          </div>
+        `;
         const rowsWrap = document.createElement('div');
 
         entries.forEach(([id, c]) => {
