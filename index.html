@@ -41,6 +41,7 @@
       --border-color: rgba(0,51,102,0.12);
       --header-height: 220px;
       --footer-height: 80px;
+      --active-banner-height: 0px; /* aggiornata via JS quando ci sono corsi in corso */
     }
     * { box-sizing: border-box; }
     body {
@@ -110,7 +111,7 @@
     /* ====== BANNER PUBBLICITARIO (NUOVO) ====== */
     #ad-banner {
       position: fixed;
-      top: var(--header-height);
+      top: calc(var(--header-height) + var(--active-banner-height));
       left: 0;
       right: 0;
       bottom: var(--footer-height);
@@ -120,7 +121,7 @@
       justify-content: center;
       align-items: center;
       /* Animazione di scorrimento fluida */
-      transition: transform 1.2s cubic-bezier(0.25, 1, 0.5, 1);
+      transition: transform 1.2s cubic-bezier(0.25, 1, 0.5, 1), top 0.4s ease;
       /* Parte nascosto in alto (fuori dallo schermo/sotto l'header) */
       transform: translateY(-120%);
       /* MODIFICATO: box-shadow rimosso da qui e spostato sull'immagine */
@@ -139,6 +140,42 @@
       box-shadow: 0 10px 30px rgba(0,0,0,0.4); 
     }
 
+    /* ====== BANNER "IN CORSO ORA" ====== */
+    #active-banner {
+      position: fixed;
+      top: var(--header-height);
+      left: 0;
+      right: 0;
+      height: var(--active-banner-height);
+      overflow: hidden;
+      z-index: 950; /* sopra l'ad-banner, sotto header/footer */
+      background-color: var(--bg-color);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 20px;
+      padding: 0 40px;
+      transition: height 0.4s ease;
+    }
+    #active-banner .active-label {
+      position: absolute;
+      top: 10px;
+      left: 50px;
+      font-size: 16px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: #198754;
+    }
+    #active-banner .course.compact {
+      flex: 1;
+      max-width: 800px;
+    }
+    #active-banner .course.compact .attivita { font-size: 34px; padding-top: 6px; }
+    #active-banner .course.compact .info-label { font-size: 14px; margin-bottom: 2px; }
+    #active-banner .course.compact .info-time { font-size: 32px; }
+    #active-banner .course.compact > div { padding: 10px 24px; }
+
     /* ====== CONTENUTO ====== */
     .container {
       flex: 1;
@@ -146,9 +183,10 @@
       justify-content: center;
       align-items: center;
       padding: 20px;
-      margin-top: var(--header-height);
+      margin-top: calc(var(--header-height) + var(--active-banner-height));
       margin-bottom: var(--footer-height);
       overflow-y: hidden;
+      transition: margin-top 0.4s ease;
     }
     #courses {
       width: 100%;
@@ -424,7 +462,7 @@
     }
     .corso-row, .nota-row {
       display: grid;
-      grid-template-columns: 2fr 110px 110px 90px auto auto;
+      grid-template-columns: 2fr 110px 110px 110px auto auto;
       gap: 10px;
       align-items: center;
       background: #fff;
@@ -440,7 +478,7 @@
 
     .ecc-corso-row {
       display: grid;
-      grid-template-columns: 2fr 110px 110px 90px auto;
+      grid-template-columns: 2fr 110px 110px 110px auto;
       gap: 10px;
       margin-bottom: 8px;
     }
@@ -488,6 +526,9 @@
       <div class="date" id="date">--</div>
     </div>
   </header>
+
+  <!-- ====== BANNER "IN CORSO ORA" ====== -->
+  <div id="active-banner"></div>
 
   <!-- ====== NUOVO: BANNER PUBBLICITARIO ====== -->
   <div id="ad-banner">
@@ -577,7 +618,7 @@
               <label><span>Inizio</span><input type="time" name="oraInizio" required></label>
             </div>
             <div class="field">
-              <label><span>Durata (min)</span><input type="number" name="durata" min="1" value="60" required></label>
+              <label><span>Fine</span><input type="time" name="oraFine" required></label>
             </div>
             <div class="field"><button type="submit">Aggiungi</button></div>
           </form>
@@ -805,20 +846,41 @@
         .map(r => {
           const ingressoMin = parseTime(r.oraIngresso);
           const inizioMin   = parseTime(r.oraInizio);
-          const durata      = Number.parseInt(r.durata) || 60;
+          let fineMin = parseTime(r.oraFine);
+          if (!Number.isFinite(fineMin)) {
+            // Compatibilità con corsi salvati prima dell'introduzione del
+            // campo "orario di fine" (che allora usavano una durata in minuti)
+            const baseMin = Number.isFinite(ingressoMin) ? ingressoMin : inizioMin;
+            const legacyDurata = Number.parseInt(r.durata) || 60;
+            fineMin = baseMin + legacyDurata;
+          }
+          const oraFine = r.oraFine || `${Math.floor((fineMin % 1440) / 60).toString().padStart(2, '0')}:${(fineMin % 60).toString().padStart(2, '0')}`;
           return {
             attivita: r.attivita || '',
             oraIngresso: r.oraIngresso || '',
             oraInizio: r.oraInizio || '',
-            durata,
+            oraFine,
             ingressoMin,
-            inizioMin
+            inizioMin,
+            fineMin
           };
         })
-        .filter(c => Number.isFinite(c.ingressoMin) && currentTime <= (c.ingressoMin + c.durata))
+        .filter(c => Number.isFinite(c.ingressoMin) && currentTime <= c.fineMin)
         .sort((a, b) => a.ingressoMin - b.ingressoMin);
 
-      renderCourses(parsed, currentTime, emptyMessage);
+      // I corsi già iniziati vanno nel banner "in corso ora"; quelli non
+      // ancora iniziati restano nell'elenco principale sotto.
+      const activeCourses = parsed.filter(c => currentTime >= c.ingressoMin);
+      const upcomingCourses = parsed.filter(c => currentTime < c.ingressoMin);
+
+      renderActiveBanner(activeCourses);
+
+      let listEmptyMessage = emptyMessage; // es. messaggio di chiusura per festività
+      if (!listEmptyMessage && upcomingCourses.length === 0 && activeCourses.length > 0) {
+        listEmptyMessage = 'Nessun altro corso in programma oggi.';
+      }
+      const maxVisible = activeCourses.length > 0 ? 3 : 4;
+      renderCourses(upcomingCourses, currentTime, listEmptyMessage, maxVisible);
 
       /* ---- NOTE (ticker in basso) ---- */
       const noteExtra = eccezione && eccezione.messaggio && !eccezione.chiuso ? [eccezione.messaggio] : [];
@@ -829,9 +891,39 @@
       updateTicker(notesText || 'Benvenuti alla Piscina Lampugnano');
     }
 
-    function renderCourses(courses, currentTime, emptyMessage) {
+    function renderActiveBanner(activeCourses) {
+      const banner = document.getElementById('active-banner');
+
+      if (!activeCourses.length) {
+        document.documentElement.style.setProperty('--active-banner-height', '0px');
+        banner.innerHTML = '';
+        return;
+      }
+
+      const boxesHtml = activeCourses.map(corso => `
+        <div class="course compact green">
+          <div class="attivita">${corso.attivita}</div>
+          <div class="dettagli">
+            <div class="info-box">
+              <span class="info-label">Inizio</span>
+              <span class="info-time">${corso.oraInizio}</span>
+            </div>
+            <div class="info-box">
+              <span class="info-label">Fine</span>
+              <span class="info-time">${corso.oraFine}</span>
+            </div>
+          </div>
+        </div>
+      `).join('');
+
+      banner.innerHTML = `<span class="active-label">In corso ora</span>${boxesHtml}`;
+      document.documentElement.style.setProperty('--active-banner-height', '150px');
+    }
+
+    function renderCourses(courses, currentTime, emptyMessage, maxVisible) {
         const coursesBox = document.getElementById('courses');
         let htmlContent = '';
+        maxVisible = maxVisible || 4;
 
         if (courses.length === 0) {
            htmlContent = emptyMessage
@@ -842,21 +934,20 @@
               <span style="font-size:30px; color:#666">Vi aspettiamo domani!</span>
             </div>`;
         } else {
-          // MODIFICATO: Mostra massimo 4 corsi
-          const visible = courses.slice(0, 4); 
-          
+          // Qui arrivano solo corsi non ancora iniziati (quelli già in corso
+          // sono mostrati a parte nel banner "in corso ora").
+          const visible = courses.slice(0, maxVisible);
+
           visible.forEach(corso => {
             const timeToStart = corso.ingressoMin - currentTime;
-            
-            let style = 'gray'; 
+
+            let style = 'gray';
             let ingressoHtml = `
                 <span class="info-label">Ingresso</span>
                 <span class="info-time">${corso.oraIngresso}</span>
             `;
 
-            if (timeToStart <= 0 && timeToStart > -corso.durata) {
-                style = 'green'; 
-            } else if (timeToStart <= 5 && timeToStart > 0) {
+            if (timeToStart <= 5 && timeToStart > 0) {
                 style = 'yellow';
                 if (corso.oraIngresso && corso.oraIngresso.includes(':')) {
                     const [h, m] = corso.oraIngresso.split(':').map(Number);
@@ -869,20 +960,10 @@
                 }
             }
 
-            let inizioHtml = `
+            const inizioHtml = `
                 <span class="info-label">Inizio</span>
                 <span class="info-time">${corso.oraInizio}</span>
             `;
-
-            if (corso.attivita && corso.attivita.toLowerCase().includes('nuoto libero') && !isNaN(corso.inizioMin) && currentTime >= corso.inizioMin) {
-                const fineMin = corso.inizioMin + corso.durata;
-                const hStr = Math.floor(fineMin / 60).toString().padStart(2, '0');
-                const mStr = (fineMin % 60).toString().padStart(2, '0');
-                inizioHtml = `
-                    <span class="info-label">Fine</span>
-                    <span class="info-time">${hStr}:${mStr}</span>
-                `;
-            }
 
             htmlContent += `
               <div class="course ${style}">
@@ -984,6 +1065,24 @@ const GIORNI = ['lunedì','martedì','mercoledì','giovedì','venerdì','sabato'
       el.classList.add('saved-flash');
       setTimeout(() => el.classList.remove('saved-flash'), 900);
     }
+    function minutesToHHMM(min) {
+      if (!Number.isFinite(min)) return '';
+      const m = ((Math.round(min) % 1440) + 1440) % 1440;
+      const h = Math.floor(m / 60).toString().padStart(2, '0');
+      const mm = (m % 60).toString().padStart(2, '0');
+      return `${h}:${mm}`;
+    }
+    // Calcola l'orario di fine di un corso. Se il corso è già salvato col
+    // nuovo campo "oraFine" lo usa direttamente; altrimenti (corsi inseriti
+    // prima di questa modifica, che avevano solo "durata" in minuti) lo
+    // ricava da ingresso/inizio + durata, così le voci vecchie restano
+    // corrette finché non vengono risalvate nel nuovo formato.
+    function resolveOraFine(c) {
+      if (c.oraFine) return c.oraFine;
+      const baseMin = Number.isFinite(parseTime(c.oraIngresso)) ? parseTime(c.oraIngresso) : parseTime(c.oraInizio);
+      const durata = Number.parseInt(c.durata) || 60;
+      return minutesToHHMM(baseMin + durata);
+    }
 
     function initData() {
       if (dataInitialized) return; // evita di riattaccare i listener a ogni login
@@ -1006,7 +1105,7 @@ const GIORNI = ['lunedì','martedì','mercoledì','giovedì','venerdì','sabato'
           attivita: f.attivita.value.trim(),
           oraIngresso: f.oraIngresso.value,
           oraInizio: f.oraInizio.value,
-          durata: parseInt(f.durata.value, 10) || 60
+          oraFine: f.oraFine.value
         }).then(() => f.reset());
       });
     }
@@ -1038,7 +1137,7 @@ const GIORNI = ['lunedì','martedì','mercoledì','giovedì','venerdì','sabato'
             <input type="text" value="${escapeAttr(c.attivita)}" data-field="attivita">
             <input type="time" value="${c.oraIngresso || ''}" data-field="oraIngresso">
             <input type="time" value="${c.oraInizio || ''}" data-field="oraInizio">
-            <input type="number" min="1" value="${c.durata || 60}" data-field="durata">
+            <input type="time" value="${resolveOraFine(c)}" data-field="oraFine">
             <button type="button" class="btn-secondary btn-save">Salva</button>
             <button type="button" class="btn-delete">Elimina</button>
           `;
@@ -1048,7 +1147,7 @@ const GIORNI = ['lunedì','martedì','mercoledì','giovedì','venerdì','sabato'
               attivita: row.querySelector('[data-field="attivita"]').value.trim(),
               oraIngresso: row.querySelector('[data-field="oraIngresso"]').value,
               oraInizio: row.querySelector('[data-field="oraInizio"]').value,
-              durata: parseInt(row.querySelector('[data-field="durata"]').value, 10) || 60
+              oraFine: row.querySelector('[data-field="oraFine"]').value
             });
             flashSaved(row);
           });
@@ -1094,9 +1193,9 @@ const GIORNI = ['lunedì','martedì','mercoledì','giovedì','venerdì','sabato'
             const attivita = row.querySelector('[data-field="attivita"]').value.trim();
             const oraIngresso = row.querySelector('[data-field="oraIngresso"]').value;
             const oraInizio = row.querySelector('[data-field="oraInizio"]').value;
-            const durata = parseInt(row.querySelector('[data-field="durata"]').value, 10) || 60;
+            const oraFine = row.querySelector('[data-field="oraFine"]').value;
             if (attivita && oraIngresso) {
-              corsi.push({ attivita, oraIngresso, oraInizio: oraInizio || oraIngresso, durata });
+              corsi.push({ attivita, oraIngresso, oraInizio: oraInizio || oraIngresso, oraFine });
             }
           });
           if (corsi.length) payload.corsi = corsi;
@@ -1127,7 +1226,7 @@ const GIORNI = ['lunedì','martedì','mercoledì','giovedì','venerdì','sabato'
         <input type="text" placeholder="Attività" data-field="attivita" value="${prefill ? escapeAttr(prefill.attivita) : ''}">
         <input type="time" data-field="oraIngresso" value="${prefill ? (prefill.oraIngresso || '') : ''}">
         <input type="time" data-field="oraInizio" value="${prefill ? (prefill.oraInizio || '') : ''}">
-        <input type="number" min="1" data-field="durata" value="${prefill ? (prefill.durata || 60) : 60}">
+        <input type="time" data-field="oraFine" value="${prefill ? resolveOraFine(prefill) : ''}">
         <button type="button" class="btn-remove-row">×</button>
       `;
       row.querySelector('.btn-remove-row').addEventListener('click', () => row.remove());
