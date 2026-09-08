@@ -163,8 +163,10 @@
       display: flex;
       align-items: stretch;
       justify-content: flex-start;
+      align-self: flex-start;
       gap: 20px;
       width: 100%;
+      max-width: 1700px; /* stessa larghezza massima dei box principali sottostanti */
     }
     #active-banner .active-label {
       align-self: flex-start;
@@ -179,7 +181,6 @@
     }
     #active-banner .course.compact {
       flex: 1;
-      max-width: 800px;
     }
     #active-banner .course.compact .attivita { font-size: 34px; padding-top: 6px; }
     #active-banner .course.compact .info-label { font-size: 15px; margin-bottom: 3px; }
