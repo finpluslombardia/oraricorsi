@@ -734,6 +734,25 @@
             <span style="font-weight:600;">Banner attivo</span>
           </label>
 
+          <div class="inline-form" style="margin-bottom: 18px;">
+            <div class="field">
+              <label><span>Ogni quanti minuti</span>
+                <input type="number" id="banner-intervallo-input" min="0.5" step="0.5" style="width:110px;">
+              </label>
+            </div>
+            <div class="field">
+              <label><span>Per quanti secondi resta giù</span>
+                <input type="number" id="banner-durata-input" min="2" step="1" style="width:110px;">
+              </label>
+            </div>
+            <div class="field"><button type="button" id="banner-timing-save" class="btn-secondary">Salva tempi</button></div>
+            <span id="banner-timing-status" style="font-size:13px; color:var(--success-color); font-weight:600; align-self:center;"></span>
+          </div>
+          <p style="font-size:13px; color:#5a7a9a; margin-top:-10px; margin-bottom:18px;">
+            Se un corso sta per iniziare, il banner salta automaticamente quel giro (resta in pausa per un paio
+            di minuti dopo l'inizio), così non copre lo schermo proprio mentre un'attività parte.
+          </p>
+
           <div class="field">
             <label><span>Carica immagine</span>
               <input type="file" id="banner-file-input" accept="image/*">
@@ -811,29 +830,46 @@
     /* ====== NUOVO: LOGICA BANNER PUBBLICITARIO ====== */
     const adBanner = document.getElementById('ad-banner');
     const overlay = document.getElementById('overlay');
-    const AD_INTERVAL_MS = 2.5 * 60 * 1000; // 2 minuti e mezzo
-    const AD_DURATION_MS = 10 * 1000;      // 10 secondi
+    let adTimer = null;
+    // Se un corso è appena passato da "in arrivo" a "in corso" (giallo->verde
+    // nel banner), la pubblicità resta in pausa fino a questo istante, per
+    // non coprire lo schermo proprio nel momento in cui un'attività inizia.
+    let adsSuppressedUntil = 0;
+    const AD_SUPPRESS_MS = 2 * 60 * 1000; // 2 minuti di tregua dopo l'inizio di un corso
+
+    function scheduleNextAd() {
+      if (adTimer) clearTimeout(adTimer);
+      const intervalloMin = Number(dbData.bannerIntervalloMinuti) || 2.5;
+      adTimer = setTimeout(runAdCycle, Math.max(0.5, intervalloMin) * 60 * 1000);
+    }
 
     function runAdCycle() {
+      // Programma già il prossimo giro (usando l'intervallo più aggiornato
+      // impostato dall'admin), poi decide se mostrare questo.
+      scheduleNextAd();
+
       // Il banner parte solo se è stato attivato dall'admin ed è stata
       // caricata un'immagine; altrimenti il ciclo non fa nulla.
       if (!dbData.bannerAttivo || !dbData.bannerImage) return;
+
+      // Salta questo giro se un corso è appena iniziato di recente.
+      if (Date.now() < adsSuppressedUntil) return;
+
+      const durataSec = Number(dbData.bannerDurataSecondi) || 10;
 
       // 1. Fai scendere il banner e mostra l'overlay scuro (se presente)
       if (adBanner) adBanner.classList.add('show');
       if (overlay) overlay.classList.add('show');
       
-      // 2. Dopo 10 secondi, fai risalire il banner e nascondi l'overlay
+      // 2. Dopo N secondi, fai risalire il banner e nascondi l'overlay
       setTimeout(() => {
         if (adBanner) adBanner.classList.remove('show');
         if (overlay) overlay.classList.remove('show');
-      }, AD_DURATION_MS);
+      }, durataSec * 1000);
     }
 
-    // Imposta il ciclo che si ripete ogni 15 minuti
-    setInterval(runAdCycle, AD_INTERVAL_MS);
-    
-    // Fai apparire il banner poco dopo l'apertura (es. 2 secondi)
+    // Fai apparire il banner poco dopo l'apertura (es. 2 secondi); da lì in
+    // poi si ripianifica da solo con l'intervallo impostato dall'admin.
     setTimeout(runAdCycle, 2000);
 
 
@@ -855,7 +891,7 @@
        corsi, le eccezioni e le note; questa pagina li legge in tempo
        reale: quando qualcosa viene modificato dall'admin, il display si
        aggiorna automaticamente, senza bisogno di ricaricare la pagina. */
-    let dbData = { corsi: [], eccezioni: {}, note: [], bannerImage: '', bannerAttivo: false };
+    let dbData = { corsi: [], eccezioni: {}, note: [], bannerImage: '', bannerAttivo: false, bannerIntervalloMinuti: 2.5, bannerDurataSecondi: 10 };
     let dbReady = false;
 
     function toArray(val) {
@@ -886,6 +922,8 @@
         const val = snap.val() || {};
         dbData.bannerImage = val.bannerImage || '';
         dbData.bannerAttivo = !!val.bannerAttivo;
+        dbData.bannerIntervalloMinuti = Number(val.bannerIntervalloMinuti) || 2.5;
+        dbData.bannerDurataSecondi = Number(val.bannerDurataSecondi) || 10;
         const img = document.getElementById('ad-banner-img');
         if (img) img.src = dbData.bannerImage || '';
       }, err => showConnectionError(err));
@@ -955,6 +993,7 @@
       const activeCourses = parsed.filter(c => currentTime >= c.ingressoMin);
       const upcomingCourses = parsed.filter(c => currentTime < c.ingressoMin);
 
+      detectJustStartedCourses(activeCourses);
       renderActiveBanner(activeCourses, currentTime);
 
       let listEmptyMessage = emptyMessage; // es. messaggio di chiusura per festività
@@ -971,6 +1010,23 @@
         .join("  •  ");
 
       updateTicker(notesText || 'Benvenuti alla Piscina Lampugnano');
+    }
+
+    // Confronta i corsi attivi con quelli dell'ultimo giro: se ne trova uno
+    // nuovo (appena passato da "in arrivo" a "in corso"), mette in pausa la
+    // pubblicità per un po', così non copre lo schermo proprio mentre un
+    // corso sta iniziando.
+    let previousActiveKeys = new Set();
+    function detectJustStartedCourses(activeCourses) {
+      const currentKeys = new Set(activeCourses.map(c => `${c.attivita}|${c.oraIngresso}`));
+      let justStarted = false;
+      currentKeys.forEach(key => {
+        if (!previousActiveKeys.has(key)) justStarted = true;
+      });
+      if (justStarted) {
+        adsSuppressedUntil = Date.now() + AD_SUPPRESS_MS;
+      }
+      previousActiveKeys = currentKeys;
     }
 
     function renderActiveBanner(activeCourses, currentTime) {
@@ -1498,6 +1554,15 @@ const GIORNI = ['lunedì','martedì','mercoledì','giovedì','venerdì','sabato'
       const previewWrap = document.getElementById('banner-preview-wrap');
       const previewImg = document.getElementById('banner-preview-img');
       const removeBtn = document.getElementById('banner-remove-btn');
+      const intervalloInput = document.getElementById('banner-intervallo-input');
+      const durataInput = document.getElementById('banner-durata-input');
+      const timingSaveBtn = document.getElementById('banner-timing-save');
+      const timingStatus = document.getElementById('banner-timing-status');
+      let timingFieldsTouched = false;
+
+      [intervalloInput, durataInput].forEach(el => {
+        el.addEventListener('input', () => { timingFieldsTouched = true; });
+      });
 
       db.ref('impostazioni').on('value', snap => {
         const val = snap.val() || {};
@@ -1508,10 +1573,28 @@ const GIORNI = ['lunedì','martedì','mercoledì','giovedì','venerdì','sabato'
         } else {
           previewWrap.style.display = 'none';
         }
+        // Non sovrascrivere quello che l'admin sta digitando in questo momento
+        if (!timingFieldsTouched) {
+          intervalloInput.value = val.bannerIntervalloMinuti || 2.5;
+          durataInput.value = val.bannerDurataSecondi || 10;
+        }
       });
 
       toggle.addEventListener('change', () => {
         db.ref('impostazioni/bannerAttivo').set(toggle.checked);
+      });
+
+      timingSaveBtn.addEventListener('click', () => {
+        const intervallo = Math.max(0.5, Number(intervalloInput.value) || 2.5);
+        const durata = Math.max(2, Number(durataInput.value) || 10);
+        db.ref('impostazioni').update({
+          bannerIntervalloMinuti: intervallo,
+          bannerDurataSecondi: durata
+        }).then(() => {
+          timingFieldsTouched = false;
+          timingStatus.textContent = 'Salvato ✓';
+          setTimeout(() => { timingStatus.textContent = ''; }, 2000);
+        });
       });
 
       fileInput.addEventListener('change', () => {
