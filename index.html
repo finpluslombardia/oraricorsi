@@ -111,17 +111,17 @@
     /* ====== BANNER PUBBLICITARIO (NUOVO) ====== */
     #ad-banner {
       position: fixed;
-      top: calc(var(--header-height) + var(--active-banner-height));
+      top: var(--header-height);
       left: 0;
       right: 0;
       bottom: var(--footer-height);
-      z-index: 900; /* Sotto l'header (1000) e il footer (1000), ma sopra i corsi */
+      z-index: 900; /* sotto l'header e il banner "in corso ora" (950), che quindi lo copre in quella fascia */
       background-color: transparent; /* MODIFICATO: Sfondo reso invisibile */
       display: flex;
       justify-content: center;
       align-items: center;
       /* Animazione di scorrimento fluida */
-      transition: transform 1.2s cubic-bezier(0.25, 1, 0.5, 1), top 0.4s ease;
+      transition: transform 1.2s cubic-bezier(0.25, 1, 0.5, 1);
       /* Parte nascosto in alto (fuori dallo schermo/sotto l'header) */
       transform: translateY(-120%);
       /* MODIFICATO: box-shadow rimosso da qui e spostato sull'immagine */
@@ -172,9 +172,10 @@
       max-width: 800px;
     }
     #active-banner .course.compact .attivita { font-size: 34px; padding-top: 6px; }
-    #active-banner .course.compact .info-label { font-size: 14px; margin-bottom: 2px; }
-    #active-banner .course.compact .info-time { font-size: 32px; }
-    #active-banner .course.compact > div { padding: 10px 24px; }
+    #active-banner .course.compact .info-label { font-size: 15px; margin-bottom: 3px; }
+    #active-banner .course.compact .info-time { font-size: 38px; }
+    #active-banner .course.compact > div { padding: 10px 28px; }
+    #active-banner .course.compact .dettagli { flex: 0 0 auto; }
 
     /* ====== CONTENUTO ====== */
     .container {
@@ -904,10 +905,6 @@
         <div class="course compact green">
           <div class="attivita">${corso.attivita}</div>
           <div class="dettagli">
-            <div class="info-box">
-              <span class="info-label">Inizio</span>
-              <span class="info-time">${corso.oraInizio}</span>
-            </div>
             <div class="info-box">
               <span class="info-label">Fine</span>
               <span class="info-time">${corso.oraFine}</span>
