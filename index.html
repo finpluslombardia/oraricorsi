@@ -305,6 +305,23 @@
       font-weight: 500;
       line-height: var(--footer-height);
     }
+    .ticker-item {
+      display: inline-block;
+      position: relative;
+      padding: 0 36px;
+    }
+    .ticker-item:first-child { padding-left: 0; }
+    .ticker-item:not(:first-child)::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 4px;
+      height: 34px;
+      background: rgba(255,255,255,0.45);
+      border-radius: 2px;
+    }
     @keyframes ticker {
       0%   { transform: translateX(0); }
       100% { transform: translateX(-50%); }
@@ -473,7 +490,7 @@
     }
     .corso-row, .nota-row {
       display: grid;
-      grid-template-columns: 2fr 110px 110px 110px 130px auto auto auto;
+      grid-template-columns: 2fr 110px 110px 110px 130px 100px 100px 100px;
       gap: 10px;
       align-items: center;
       background: #fff;
@@ -483,8 +500,11 @@
       box-shadow: 0 1px 4px rgba(0,0,0,0.05);
       transition: background-color 0.3s ease;
     }
-    .nota-row { grid-template-columns: 1fr auto auto; }
+    .nota-row { grid-template-columns: 1fr auto auto auto auto; }
+    .btn-move-up, .btn-move-down { padding: 8px 12px; font-size: 15px; line-height: 1; }
+    .btn-move-up:disabled, .btn-move-down:disabled { opacity: 0.3; cursor: default; }
     .corso-row input, .nota-row input { width: 100%; }
+    .corso-row button { width: 100%; padding-left: 8px; padding-right: 8px; }
     .saved-flash { background-color: #d1e7dd !important; }
 
     .corso-row-header {
@@ -932,7 +952,13 @@
       }, err => showConnectionError(err));
 
       db.ref('note').on('value', snap => {
-        dbData.note = toArray(snap.val()).map(n => (typeof n === 'string' ? n : (n && n.testo) || ''));
+        const noteItems = toArray(snap.val());
+        noteItems.sort((a, b) => {
+          const oa = (a && typeof a === 'object' && Number.isFinite(a.ordine)) ? a.ordine : Infinity;
+          const ob = (b && typeof b === 'object' && Number.isFinite(b.ordine)) ? b.ordine : Infinity;
+          return oa - ob;
+        });
+        dbData.note = noteItems.map(n => (typeof n === 'string' ? n : (n && n.testo) || ''));
         renderAll();
       }, err => showConnectionError(err));
 
@@ -1026,11 +1052,9 @@
 
       /* ---- NOTE (ticker in basso) ---- */
       const noteExtra = eccezione && eccezione.messaggio && !eccezione.chiuso ? [eccezione.messaggio] : [];
-      const notesText = [...noteExtra, ...dbData.note]
-        .filter(t => t && t.trim() !== '')
-        .join("  •  ");
+      const notesList = [...noteExtra, ...dbData.note].filter(t => t && t.trim() !== '');
 
-      updateTicker(notesText || 'Benvenuti alla Piscina Lampugnano');
+      updateTicker(notesList.length ? notesList : ['Benvenuti alla Piscina Lampugnano']);
     }
 
     function renderActiveBanner(activeCourses, currentTime) {
@@ -1157,15 +1181,17 @@
         updateCountdowns(); // Aggiorna i contatori istantaneamente
     }
 
-    function updateTicker(text) {
+    function updateTicker(items) {
         const copy1 = document.getElementById('ticker-copy-1');
         const copy2 = document.getElementById('ticker-copy-2');
         const track = document.getElementById('ticker-track');
-        
-        if (copy1.textContent === text) return;
 
-        copy1.textContent = text;
-        copy2.textContent = text;
+        const html = items.map(t => `<span class="ticker-item">${escapeHtml(t)}</span>`).join('');
+
+        if (copy1.innerHTML === html) return;
+
+        copy1.innerHTML = html;
+        copy2.innerHTML = html;
 
         requestAnimationFrame(() => {
             const width = copy1.offsetWidth;
@@ -1544,37 +1570,77 @@ const GIORNI = ['lunedì','martedì','mercoledì','giovedì','venerdì','sabato'
         const f = e.target;
         const testo = f.testo.value.trim();
         if (!testo) return;
-        db.ref('note').push({ testo }).then(() => f.reset());
+        // ordine = timestamp attuale, così le nuove note vanno sempre in fondo
+        db.ref('note').push({ testo, ordine: Date.now() }).then(() => f.reset());
       });
     }
 
     function renderNoteList(noteObj) {
       const container = document.getElementById('note-list');
-      container.innerHTML = '';
       const db = firebase.database();
-      const entries = Object.entries(noteObj);
+      let entries = Object.entries(noteObj);
 
       if (entries.length === 0) {
         container.innerHTML = '<p class="empty-hint">Nessuna nota inserita.</p>';
         return;
       }
 
-      entries.forEach(([id, n]) => {
+      // Migrazione una tantum: le note create prima di questa funzionalità
+      // non hanno un campo "ordine". Gliene assegniamo uno la prima volta,
+      // rispettando l'ordine in cui erano già mostrate.
+      const needsMigration = entries.some(([, n]) => !Number.isFinite(n.ordine));
+      if (needsMigration) {
+        const sorted = entries.slice().sort((a, b) => {
+          const oa = Number.isFinite(a[1].ordine) ? a[1].ordine : Infinity;
+          const ob = Number.isFinite(b[1].ordine) ? b[1].ordine : Infinity;
+          if (oa !== ob) return oa - ob;
+          return a[0].localeCompare(b[0]);
+        });
+        const updates = {};
+        sorted.forEach(([id], idx) => { updates[id + '/ordine'] = idx; });
+        db.ref('note').update(updates);
+        return; // il render vero arriverà subito dopo, con gli ordini a posto
+      }
+
+      entries.sort((a, b) => a[1].ordine - b[1].ordine);
+      container.innerHTML = '';
+
+      entries.forEach(([id, n], index) => {
         const testo = typeof n === 'string' ? n : (n.testo || '');
         const row = document.createElement('div');
         row.className = 'nota-row';
         row.innerHTML = `
           <input type="text" value="${escapeAttr(testo)}" data-field="testo">
+          <button type="button" class="btn-secondary btn-move-up" title="Sposta su" ${index === 0 ? 'disabled' : ''}>▲</button>
+          <button type="button" class="btn-secondary btn-move-down" title="Sposta giù" ${index === entries.length - 1 ? 'disabled' : ''}>▼</button>
           <button type="button" class="btn-secondary btn-save">Salva</button>
           <button type="button" class="btn-delete">Elimina</button>
         `;
         row.querySelector('.btn-save').addEventListener('click', () => {
-          db.ref('note/' + id).set({ testo: row.querySelector('[data-field="testo"]').value.trim() });
+          db.ref('note/' + id).update({ testo: row.querySelector('[data-field="testo"]').value.trim() });
           flashSaved(row);
         });
         row.querySelector('.btn-delete').addEventListener('click', () => {
           if (confirm('Eliminare questa nota?')) db.ref('note/' + id).remove();
         });
+        if (index > 0) {
+          row.querySelector('.btn-move-up').addEventListener('click', () => {
+            const [prevId, prevNote] = entries[index - 1];
+            const updates = {};
+            updates[id + '/ordine'] = prevNote.ordine;
+            updates[prevId + '/ordine'] = n.ordine;
+            db.ref('note').update(updates);
+          });
+        }
+        if (index < entries.length - 1) {
+          row.querySelector('.btn-move-down').addEventListener('click', () => {
+            const [nextId, nextNote] = entries[index + 1];
+            const updates = {};
+            updates[id + '/ordine'] = nextNote.ordine;
+            updates[nextId + '/ordine'] = n.ordine;
+            db.ref('note').update(updates);
+          });
+        }
         container.appendChild(row);
       });
     }
