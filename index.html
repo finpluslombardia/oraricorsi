@@ -1152,7 +1152,8 @@
       });
 
       Array.from(row.children).forEach(child => {
-        if (child.dataset && child.dataset.key && !seenKeys.has(child.dataset.key)) {
+        const key = child.dataset ? child.dataset.key : undefined;
+        if (!key || !seenKeys.has(key)) {
           child.remove();
         }
       });
@@ -1263,9 +1264,12 @@
         });
 
         // Rimuovi i box di corsi che non sono più tra quelli da mostrare
-        // (es. spostati nel banner, oppure usciti dai primi N in elenco).
+        // (es. spostati nel banner, oppure usciti dai primi N in elenco) e
+        // anche qualsiasi elemento "estraneo" rimasto lì (come il messaggio
+        // statico "Caricamento corsi..." presente nell'HTML iniziale).
         Array.from(coursesBox.children).forEach(child => {
-          if (child.dataset && child.dataset.key && !seenKeys.has(child.dataset.key)) {
+          const key = child.dataset ? child.dataset.key : undefined;
+          if (!key || !seenKeys.has(key)) {
             child.remove();
           }
         });
