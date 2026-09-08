@@ -554,9 +554,21 @@
 
     .ecc-corso-row {
       display: grid;
-      grid-template-columns: 2fr 110px 110px 110px 130px auto;
+      grid-template-columns: 2fr 110px 110px 110px 130px 50px;
       gap: 10px;
       margin-bottom: 8px;
+    }
+    .ecc-corso-row-header {
+      background: transparent;
+      padding: 0 2px 4px;
+      margin-bottom: 4px;
+    }
+    .ecc-corso-row-header span {
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: #8ba3bd;
     }
     #ecc-add-row { margin-top: 4px; }
 
@@ -732,6 +744,14 @@
 
             <div id="ecc-corsi-wrapper">
               <h3>Corsi speciali per questa data (lascia vuoto se è solo una chiusura)</h3>
+              <div class="ecc-corso-row ecc-corso-row-header">
+                <span>Attività</span>
+                <span>Ingresso</span>
+                <span>Inizio</span>
+                <span>Fine</span>
+                <span>Ultimo ingresso</span>
+                <span></span>
+              </div>
               <div id="ecc-corsi-rows"></div>
               <button type="button" id="ecc-add-row" class="btn-secondary">+ Aggiungi corso a questa data</button>
             </div>
