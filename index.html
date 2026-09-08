@@ -151,21 +151,30 @@
       z-index: 950; /* sopra l'ad-banner, sotto header/footer */
       background-color: var(--bg-color);
       display: flex;
+      flex-direction: column;
       align-items: center;
       justify-content: center;
-      gap: 20px;
-      padding: 0 40px;
+      gap: 12px;
+      padding: 16px 40px;
       transition: height 0.4s ease;
     }
+    #active-banner .courses-row {
+      display: flex;
+      align-items: stretch;
+      justify-content: center;
+      gap: 20px;
+      width: 100%;
+    }
     #active-banner .active-label {
-      position: absolute;
-      top: 10px;
-      left: 50px;
-      font-size: 16px;
-      font-weight: 700;
+      align-self: flex-start;
+      font-size: 26px;
+      font-weight: 800;
       letter-spacing: 1px;
       text-transform: uppercase;
-      color: #198754;
+      color: #ffffff;
+      background-color: #198754;
+      padding: 6px 20px;
+      border-radius: 8px;
     }
     #active-banner .course.compact {
       flex: 1;
@@ -173,9 +182,9 @@
     }
     #active-banner .course.compact .attivita { font-size: 34px; padding-top: 6px; }
     #active-banner .course.compact .info-label { font-size: 15px; margin-bottom: 3px; }
-    #active-banner .course.compact .info-time { font-size: 38px; }
+    #active-banner .course.compact .info-time { font-size: 38px; white-space: nowrap; }
     #active-banner .course.compact > div { padding: 10px 28px; }
-    #active-banner .course.compact .dettagli { flex: 0 0 auto; }
+    #active-banner .course.compact .dettagli { flex: 0 0 auto; gap: 24px; }
 
     /* ====== CONTENUTO ====== */
     .container {
@@ -463,7 +472,7 @@
     }
     .corso-row, .nota-row {
       display: grid;
-      grid-template-columns: 2fr 110px 110px 110px auto auto;
+      grid-template-columns: 2fr 110px 110px 110px 130px auto auto;
       gap: 10px;
       align-items: center;
       background: #fff;
@@ -479,7 +488,7 @@
 
     .ecc-corso-row {
       display: grid;
-      grid-template-columns: 2fr 110px 110px 110px auto;
+      grid-template-columns: 2fr 110px 110px 110px 130px auto;
       gap: 10px;
       margin-bottom: 8px;
     }
@@ -620,6 +629,9 @@
             </div>
             <div class="field">
               <label><span>Fine</span><input type="time" name="oraFine" required></label>
+            </div>
+            <div class="field">
+              <label><span>Ultimo ingresso <span style="font-weight:400; color:#8ba3bd;">(opz., solo nuoto libero)</span></span><input type="time" name="ultimoIngresso"></label>
             </div>
             <div class="field"><button type="submit">Aggiungi</button></div>
           </form>
@@ -861,6 +873,7 @@
             oraIngresso: r.oraIngresso || '',
             oraInizio: r.oraInizio || '',
             oraFine,
+            ultimoIngresso: r.ultimoIngresso || '',
             ingressoMin,
             inizioMin,
             fineMin
@@ -901,7 +914,16 @@
         return;
       }
 
-      const boxesHtml = activeCourses.map(corso => `
+      const boxesHtml = activeCourses.map(corso => {
+        const isNuotoLibero = corso.attivita && corso.attivita.toLowerCase().includes('nuoto libero');
+        const ultimoIngressoHtml = (isNuotoLibero && corso.ultimoIngresso)
+          ? `
+            <div class="info-box">
+              <span class="info-label">Ultimo ingresso</span>
+              <span class="info-time">${corso.ultimoIngresso}</span>
+            </div>`
+          : '';
+        return `
         <div class="course compact green">
           <div class="attivita">${corso.attivita}</div>
           <div class="dettagli">
@@ -909,12 +931,14 @@
               <span class="info-label">Fine</span>
               <span class="info-time">${corso.oraFine}</span>
             </div>
+            ${ultimoIngressoHtml}
           </div>
         </div>
-      `).join('');
+      `;
+      }).join('');
 
-      banner.innerHTML = `<span class="active-label">In corso ora</span>${boxesHtml}`;
-      document.documentElement.style.setProperty('--active-banner-height', '150px');
+      banner.innerHTML = `<span class="active-label">In corso ora</span><div class="courses-row">${boxesHtml}</div>`;
+      document.documentElement.style.setProperty('--active-banner-height', '195px');
     }
 
     function renderCourses(courses, currentTime, emptyMessage, maxVisible) {
@@ -1102,7 +1126,8 @@ const GIORNI = ['lunedì','martedì','mercoledì','giovedì','venerdì','sabato'
           attivita: f.attivita.value.trim(),
           oraIngresso: f.oraIngresso.value,
           oraInizio: f.oraInizio.value,
-          oraFine: f.oraFine.value
+          oraFine: f.oraFine.value,
+          ultimoIngresso: f.ultimoIngresso.value
         }).then(() => f.reset());
       });
     }
@@ -1135,6 +1160,7 @@ const GIORNI = ['lunedì','martedì','mercoledì','giovedì','venerdì','sabato'
             <input type="time" value="${c.oraIngresso || ''}" data-field="oraIngresso">
             <input type="time" value="${c.oraInizio || ''}" data-field="oraInizio">
             <input type="time" value="${resolveOraFine(c)}" data-field="oraFine">
+            <input type="time" value="${c.ultimoIngresso || ''}" data-field="ultimoIngresso" title="Ultimo ingresso (solo nuoto libero)">
             <button type="button" class="btn-secondary btn-save">Salva</button>
             <button type="button" class="btn-delete">Elimina</button>
           `;
@@ -1144,7 +1170,8 @@ const GIORNI = ['lunedì','martedì','mercoledì','giovedì','venerdì','sabato'
               attivita: row.querySelector('[data-field="attivita"]').value.trim(),
               oraIngresso: row.querySelector('[data-field="oraIngresso"]').value,
               oraInizio: row.querySelector('[data-field="oraInizio"]').value,
-              oraFine: row.querySelector('[data-field="oraFine"]').value
+              oraFine: row.querySelector('[data-field="oraFine"]').value,
+              ultimoIngresso: row.querySelector('[data-field="ultimoIngresso"]').value
             });
             flashSaved(row);
           });
@@ -1191,8 +1218,9 @@ const GIORNI = ['lunedì','martedì','mercoledì','giovedì','venerdì','sabato'
             const oraIngresso = row.querySelector('[data-field="oraIngresso"]').value;
             const oraInizio = row.querySelector('[data-field="oraInizio"]').value;
             const oraFine = row.querySelector('[data-field="oraFine"]').value;
+            const ultimoIngresso = row.querySelector('[data-field="ultimoIngresso"]').value;
             if (attivita && oraIngresso) {
-              corsi.push({ attivita, oraIngresso, oraInizio: oraInizio || oraIngresso, oraFine });
+              corsi.push({ attivita, oraIngresso, oraInizio: oraInizio || oraIngresso, oraFine, ultimoIngresso });
             }
           });
           if (corsi.length) payload.corsi = corsi;
@@ -1224,6 +1252,7 @@ const GIORNI = ['lunedì','martedì','mercoledì','giovedì','venerdì','sabato'
         <input type="time" data-field="oraIngresso" value="${prefill ? (prefill.oraIngresso || '') : ''}">
         <input type="time" data-field="oraInizio" value="${prefill ? (prefill.oraInizio || '') : ''}">
         <input type="time" data-field="oraFine" value="${prefill ? resolveOraFine(prefill) : ''}">
+        <input type="time" data-field="ultimoIngresso" title="Ultimo ingresso (solo nuoto libero)" value="${prefill ? (prefill.ultimoIngresso || '') : ''}">
         <button type="button" class="btn-remove-row">×</button>
       `;
       row.querySelector('.btn-remove-row').addEventListener('click', () => row.remove());
