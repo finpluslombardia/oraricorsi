@@ -249,6 +249,7 @@
     .green  { background-color: #d1e7dd; border-left: 20px solid #198754; }
     .yellow { background-color: #fff3cd; border-left: 20px solid #ffc107; }
     .gray   { background-color: #f8f9fa; border-left: 20px solid #6c757d; color: #6c757d; }
+    .red    { background-color: #f8d7da; border-left: 20px solid #dc3545; }
     
     /* Animazione */
     .yellow { animation: pulse-border 2s infinite; }
@@ -887,7 +888,7 @@
       const activeCourses = parsed.filter(c => currentTime >= c.ingressoMin);
       const upcomingCourses = parsed.filter(c => currentTime < c.ingressoMin);
 
-      renderActiveBanner(activeCourses);
+      renderActiveBanner(activeCourses, currentTime);
 
       let listEmptyMessage = emptyMessage; // es. messaggio di chiusura per festività
       if (!listEmptyMessage && upcomingCourses.length === 0 && activeCourses.length > 0) {
@@ -905,7 +906,7 @@
       updateTicker(notesText || 'Benvenuti alla Piscina Lampugnano');
     }
 
-    function renderActiveBanner(activeCourses) {
+    function renderActiveBanner(activeCourses, currentTime) {
       const banner = document.getElementById('active-banner');
 
       if (!activeCourses.length) {
@@ -916,6 +917,9 @@
 
       const boxesHtml = activeCourses.map(corso => {
         const isNuotoLibero = corso.attivita && corso.attivita.toLowerCase().includes('nuoto libero');
+        const ultimoIngressoMin = isNuotoLibero && corso.ultimoIngresso ? parseTime(corso.ultimoIngresso) : NaN;
+        const ultimoIngressoPassato = Number.isFinite(ultimoIngressoMin) && currentTime >= ultimoIngressoMin;
+
         const ultimoIngressoHtml = (isNuotoLibero && corso.ultimoIngresso)
           ? `
             <div class="info-box">
@@ -923,15 +927,18 @@
               <span class="info-time">${corso.ultimoIngresso}</span>
             </div>`
           : '';
+
+        const style = ultimoIngressoPassato ? 'red' : 'green';
+
         return `
-        <div class="course compact green">
+        <div class="course compact ${style}">
           <div class="attivita">${corso.attivita}</div>
           <div class="dettagli">
+            ${ultimoIngressoHtml}
             <div class="info-box">
               <span class="info-label">Fine</span>
               <span class="info-time">${corso.oraFine}</span>
             </div>
-            ${ultimoIngressoHtml}
           </div>
         </div>
       `;
