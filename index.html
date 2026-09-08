@@ -115,6 +115,7 @@
       left: 0;
       right: 0;
       bottom: var(--footer-height);
+      overflow: hidden; /* impedisce a immagini più alte del previsto di sporgere fuori quando è nascosto */
       z-index: 900; /* sotto l'header e il banner "in corso ora" (950), che quindi lo copre in quella fascia */
       background-color: transparent; /* MODIFICATO: Sfondo reso invisibile */
       display: flex;
