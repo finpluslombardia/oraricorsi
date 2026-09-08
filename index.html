@@ -798,7 +798,9 @@
     /* ====== COUNTDOWN LIVE ====== */
     function updateCountdowns() {
       const now = Date.now();
+      let scaduto = false;
       document.querySelectorAll('.live-countdown').forEach(el => {
+        if (scaduto) return; // un ricalcolo completo è già stato programmato per questo giro
         const target = parseInt(el.getAttribute('data-target'));
         const diff = target - now;
         if (diff >= 0) {
@@ -806,24 +808,13 @@
           const s = Math.floor((diff % 60000) / 1000).toString().padStart(2, '0');
           el.textContent = `${m}:${s}`;
         } else {
-          // Timer scaduto: forza il passaggio immediato a verde
-          const courseNode = el.closest('.course');
-          if (courseNode && courseNode.classList.contains('yellow')) {
-            courseNode.classList.remove('yellow');
-            courseNode.classList.add('green');
-            const originalTime = el.getAttribute('data-original');
-            const infoBox = el.closest('.info-box');
-            if (infoBox && originalTime) {
-              infoBox.innerHTML = `
-                <span class="info-label">Ingresso</span>
-                <span class="info-time">${originalTime}</span>
-              `;
-            }
-          } else {
-            el.textContent = "00:00";
-          }
+          // Il conto alla rovescia è scaduto (ingresso aperto, o corso
+          // iniziato): ricalcola subito tutta la vista invece di aspettare
+          // il prossimo giro periodico, così la transizione è immediata.
+          scaduto = true;
         }
       });
+      if (scaduto) renderAll();
     }
     setInterval(updateCountdowns, 1000);
 
@@ -990,8 +981,10 @@
 
       // I corsi già iniziati vanno nel banner "in corso ora"; quelli non
       // ancora iniziati restano nell'elenco principale sotto.
-      const activeCourses = parsed.filter(c => currentTime >= c.ingressoMin);
-      const upcomingCourses = parsed.filter(c => currentTime < c.ingressoMin);
+      // Un corso passa "in corso ora" solo quando parte davvero (oraInizio),
+      // non appena si aprono gli ingressi (oraIngresso può essere prima).
+      const activeCourses = parsed.filter(c => currentTime >= (Number.isFinite(c.inizioMin) ? c.inizioMin : c.ingressoMin));
+      const upcomingCourses = parsed.filter(c => currentTime < (Number.isFinite(c.inizioMin) ? c.inizioMin : c.ingressoMin));
 
       detectJustStartedCourses(activeCourses);
       renderActiveBanner(activeCourses, currentTime);
@@ -1090,31 +1083,49 @@
           const visible = courses.slice(0, maxVisible);
 
           visible.forEach(corso => {
-            const timeToStart = corso.ingressoMin - currentTime;
-
+            const ingressoAperto = currentTime >= corso.ingressoMin;
             let style = 'gray';
-            let ingressoHtml = `
-                <span class="info-label">Ingresso</span>
-                <span class="info-time">${corso.oraIngresso}</span>
-            `;
+            let ingressoHtml;
+            let inizioHtml;
 
-            if (timeToStart <= 5 && timeToStart > 0) {
+            if (!ingressoAperto) {
+              // L'ingresso non è ancora aperto: grigio, poi giallo con
+              // countdown negli ultimi 5 minuti prima dell'ingresso.
+              const timeToIngresso = corso.ingressoMin - currentTime;
+              if (timeToIngresso <= 5) {
                 style = 'yellow';
-                if (corso.oraIngresso && corso.oraIngresso.includes(':')) {
-                    const [h, m] = corso.oraIngresso.split(':').map(Number);
-                    const targetDate = new Date();
-                    targetDate.setHours(h, m, 0, 0);
-                    ingressoHtml = `
-                        <span class="info-label" style="color: #d32f2f;">Ingresso tra</span>
-                        <span class="info-time live-countdown" data-target="${targetDate.getTime()}" data-original="${corso.oraIngresso}">--:--</span>
-                    `;
-                }
+                const [h, m] = corso.oraIngresso.split(':').map(Number);
+                const targetDate = new Date();
+                targetDate.setHours(h, m, 0, 0);
+                ingressoHtml = `
+                    <span class="info-label" style="color: #d32f2f;">Ingresso tra</span>
+                    <span class="info-time live-countdown" data-target="${targetDate.getTime()}" data-original="${corso.oraIngresso}">--:--</span>
+                `;
+              } else {
+                ingressoHtml = `
+                    <span class="info-label">Ingresso</span>
+                    <span class="info-time">${corso.oraIngresso}</span>
+                `;
+              }
+              inizioHtml = `
+                  <span class="info-label">Inizio</span>
+                  <span class="info-time">${corso.oraInizio}</span>
+              `;
+            } else {
+              // L'ingresso è aperto: il box diventa verde e resta così,
+              // ancora nella schermata principale, finché non scatta
+              // l'orario di inizio — a quel punto si sposta (già verde)
+              // nel banner "in corso ora".
+              style = 'green';
+              ingressoHtml = `
+                  <span class="info-label">Ingresso</span>
+                  <span class="info-time">Aperto</span>
+              `;
+              inizioHtml = `
+                  <span class="info-label">Inizio</span>
+                  <span class="info-time">${corso.oraInizio}</span>
+              `;
             }
-
-            const inizioHtml = `
-                <span class="info-label">Inizio</span>
-                <span class="info-time">${corso.oraInizio}</span>
-            `;
 
             htmlContent += `
               <div class="course ${style}">
