@@ -749,8 +749,8 @@
             <span id="banner-timing-status" style="font-size:13px; color:var(--success-color); font-weight:600; align-self:center;"></span>
           </div>
           <p style="font-size:13px; color:#5a7a9a; margin-top:-10px; margin-bottom:18px;">
-            Se un corso sta per iniziare, il banner salta automaticamente quel giro (resta in pausa per un paio
-            di minuti dopo l'inizio), così non copre lo schermo proprio mentre un'attività parte.
+            Se mancano meno di 15 secondi all'ingresso di un corso, il banner salta automaticamente quel giro,
+            così non copre lo schermo proprio nel momento in cui un box passa da giallo a verde.
           </p>
 
           <div class="field">
@@ -822,16 +822,26 @@
     const adBanner = document.getElementById('ad-banner');
     const overlay = document.getElementById('overlay');
     let adTimer = null;
-    // Se un corso è appena passato da "in arrivo" a "in corso" (giallo->verde
-    // nel banner), la pubblicità resta in pausa fino a questo istante, per
-    // non coprire lo schermo proprio nel momento in cui un'attività inizia.
-    let adsSuppressedUntil = 0;
-    const AD_SUPPRESS_MS = 2 * 60 * 1000; // 2 minuti di tregua dopo l'inizio di un corso
+    const AD_INGRESSO_GUARD_MS = 15 * 1000; // non scende se mancano meno di 15" a un ingresso
 
     function scheduleNextAd() {
       if (adTimer) clearTimeout(adTimer);
       const intervalloMin = Number(dbData.bannerIntervalloMinuti) || 2.5;
       adTimer = setTimeout(runAdCycle, Math.max(0.5, intervalloMin) * 60 * 1000);
+    }
+
+    // Vero se, in questo preciso istante, manca meno di 15 secondi
+    // all'orario di ingresso di uno dei corsi di oggi (il momento esatto in
+    // cui un box passa da giallo a verde nella schermata principale).
+    function isNearAnyIngresso(windowMs) {
+      const nowMs = Date.now();
+      return todaysParsedCourses.some(c => {
+        if (!Number.isFinite(c.ingressoMin)) return false;
+        const target = new Date();
+        target.setHours(Math.floor(c.ingressoMin / 60), c.ingressoMin % 60, 0, 0);
+        const diff = target.getTime() - nowMs;
+        return diff >= 0 && diff <= windowMs;
+      });
     }
 
     function runAdCycle() {
@@ -843,8 +853,8 @@
       // caricata un'immagine; altrimenti il ciclo non fa nulla.
       if (!dbData.bannerAttivo || !dbData.bannerImage) return;
 
-      // Salta questo giro se un corso è appena iniziato di recente.
-      if (Date.now() < adsSuppressedUntil) return;
+      // Salta questo giro se manca meno di 15 secondi all'ingresso di un corso.
+      if (isNearAnyIngresso(AD_INGRESSO_GUARD_MS)) return;
 
       const durataSec = Number(dbData.bannerDurataSecondi) || 10;
 
@@ -883,6 +893,9 @@
        reale: quando qualcosa viene modificato dall'admin, il display si
        aggiorna automaticamente, senza bisogno di ricaricare la pagina. */
     let dbData = { corsi: [], eccezioni: {}, note: [], bannerImage: '', bannerAttivo: false, bannerIntervalloMinuti: 2.5, bannerDurataSecondi: 10 };
+    // Corsi di oggi (con orari già calcolati) dall'ultimo giro di renderAll,
+    // usati dal banner pubblicitario per sapere se un ingresso sta per scattare.
+    let todaysParsedCourses = [];
     let dbReady = false;
 
     function toArray(val) {
@@ -979,6 +992,8 @@
         .filter(c => Number.isFinite(c.ingressoMin) && currentTime <= c.fineMin)
         .sort((a, b) => a.ingressoMin - b.ingressoMin);
 
+      todaysParsedCourses = parsed; // usato dal banner pubblicitario
+
       // I corsi già iniziati vanno nel banner "in corso ora"; quelli non
       // ancora iniziati restano nell'elenco principale sotto.
       // Un corso passa "in corso ora" solo quando parte davvero (oraInizio),
@@ -986,7 +1001,6 @@
       const activeCourses = parsed.filter(c => currentTime >= (Number.isFinite(c.inizioMin) ? c.inizioMin : c.ingressoMin));
       const upcomingCourses = parsed.filter(c => currentTime < (Number.isFinite(c.inizioMin) ? c.inizioMin : c.ingressoMin));
 
-      detectJustStartedCourses(activeCourses);
       renderActiveBanner(activeCourses, currentTime);
 
       let listEmptyMessage = emptyMessage; // es. messaggio di chiusura per festività
@@ -1003,23 +1017,6 @@
         .join("  •  ");
 
       updateTicker(notesText || 'Benvenuti alla Piscina Lampugnano');
-    }
-
-    // Confronta i corsi attivi con quelli dell'ultimo giro: se ne trova uno
-    // nuovo (appena passato da "in arrivo" a "in corso"), mette in pausa la
-    // pubblicità per un po', così non copre lo schermo proprio mentre un
-    // corso sta iniziando.
-    let previousActiveKeys = new Set();
-    function detectJustStartedCourses(activeCourses) {
-      const currentKeys = new Set(activeCourses.map(c => `${c.attivita}|${c.oraIngresso}`));
-      let justStarted = false;
-      currentKeys.forEach(key => {
-        if (!previousActiveKeys.has(key)) justStarted = true;
-      });
-      if (justStarted) {
-        adsSuppressedUntil = Date.now() + AD_SUPPRESS_MS;
-      }
-      previousActiveKeys = currentKeys;
     }
 
     function renderActiveBanner(activeCourses, currentTime) {
