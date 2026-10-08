@@ -156,20 +156,21 @@
       align-items: flex-start;
       justify-content: center;
       gap: 12px;
-      padding: 16px 40px;
+      padding: 16px 20px; /* stesso padding laterale del contenitore dei box */
       transition: height 0.4s ease;
     }
     #active-banner .courses-row {
       display: flex;
       align-items: stretch;
       justify-content: flex-start;
-      align-self: flex-start;
+      align-self: center; /* centrata come i box principali */
       gap: 20px;
       width: 100%;
       max-width: 1700px; /* stessa larghezza massima dei box principali sottostanti */
     }
     #active-banner .active-label {
       align-self: flex-start;
+      margin-left: max(0px, calc((100% - 1700px) / 2)); /* allinea l'etichetta al bordo sinistro dei box */
       font-size: 28px;
       font-weight: 800;
       letter-spacing: 1px;
@@ -889,6 +890,10 @@
         scaduto = true;
       }
 
+      if (!scaduto && activeUltimoIngressoTimes.some(t => now >= t)) {
+        scaduto = true;
+      }
+
       if (scaduto) renderAll();
     }
     setInterval(updateCountdowns, 1000);
@@ -975,6 +980,7 @@
     // "in corso ora": servono per toglierli non appena scoccano, invece di
     // aspettare fino a 15 secondi il giro periodico successivo.
     let activeCourseEndTimes = [];
+    let activeUltimoIngressoTimes = [];
     let dbReady = false;
 
     function toArray(val) {
@@ -1107,6 +1113,7 @@
 
       if (!activeCourses.length) {
         activeCourseEndTimes = [];
+        activeUltimoIngressoTimes = [];
         document.documentElement.style.setProperty('--active-banner-height', '0px');
         banner.innerHTML = '';
         return;
@@ -1117,6 +1124,18 @@
         .map(c => {
           const target = new Date();
           target.setHours(Math.floor(c.fineMin / 60), c.fineMin % 60, 0, 0);
+          return target.getTime();
+        });
+
+      // Orari di "ultimo ingresso" ancora da raggiungere: servono a far
+      // scattare il rosso esattamente al secondo giusto.
+      activeUltimoIngressoTimes = activeCourses
+        .filter(c => /nuoto\s*libero/i.test(c.attivita || '') && c.ultimoIngresso)
+        .map(c => parseTime(c.ultimoIngresso))
+        .filter(m => Number.isFinite(m) && currentTime < m)
+        .map(m => {
+          const target = new Date();
+          target.setHours(Math.floor(m / 60), m % 60, 0, 0);
           return target.getTime();
         });
 
@@ -1135,7 +1154,7 @@
         const key = `${corso.attivita}|${corso.oraIngresso}`;
         seenKeys.add(key);
 
-        const isNuotoLibero = corso.attivita && corso.attivita.toLowerCase().includes('nuoto libero');
+        const isNuotoLibero = /nuoto\s*libero/i.test(corso.attivita || '');
         const ultimoIngressoMin = isNuotoLibero && corso.ultimoIngresso ? parseTime(corso.ultimoIngresso) : NaN;
         const ultimoIngressoPassato = Number.isFinite(ultimoIngressoMin) && currentTime >= ultimoIngressoMin;
 
