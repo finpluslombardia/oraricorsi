@@ -117,7 +117,7 @@
       right: 0;
       bottom: var(--footer-height);
       overflow: hidden; /* impedisce a immagini più alte del previsto di sporgere fuori quando è nascosto */
-      z-index: 900; /* sotto l'header e il banner "in corso ora" (950), che quindi lo copre in quella fascia */
+      z-index: 960; /* sopra il banner "in corso ora" (950), sotto header e footer (1000): copre tutto da header a ticker */
       background-color: transparent; /* MODIFICATO: Sfondo reso invisibile */
       display: flex;
       justify-content: center;
@@ -150,7 +150,7 @@
       right: 0;
       height: var(--active-banner-height);
       overflow: hidden;
-      z-index: 950; /* sopra l'ad-banner, sotto header/footer */
+      z-index: 950; /* sotto l'ad-banner (960) e sotto header/footer */
       background-color: var(--bg-color);
       display: flex;
       flex-direction: column;
