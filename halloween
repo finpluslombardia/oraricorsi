@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Piscina Lampugnano 🎃</title>
+  <link href="https://fonts.googleapis.com/css2?family=Creepster&display=swap" rel="stylesheet" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
 
   <!-- Firebase: un solo database condiviso tra la vista display e la vista admin -->
@@ -628,25 +629,6 @@
     #display-view .datetime .time { color: #ff8a1f; text-shadow: 0 0 22px rgba(255,138,31,0.55); }
     #display-view .datetime .date { color: #d7b8ff; }
 
-    .halloween-deco {
-      flex: 1;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      gap: 34px;
-      font-size: 74px;
-      line-height: 1;
-      pointer-events: none;
-      user-select: none;
-    }
-    .halloween-deco span { display: inline-block; animation: hw-float 3.6s ease-in-out infinite; filter: drop-shadow(0 0 14px rgba(255,122,0,0.55)); }
-    .halloween-deco span:nth-child(2) { animation-delay: -0.9s; }
-    .halloween-deco span:nth-child(3) { animation-delay: -1.8s; }
-    .halloween-deco span:nth-child(4) { animation-delay: -2.7s; }
-    @keyframes hw-float {
-      0%, 100% { transform: translateY(0) rotate(-4deg); }
-      50%      { transform: translateY(-10px) rotate(4deg); }
-    }
 
     #display-view #active-banner,
     #display-view #ad-banner { background-color: #140a1f; }
@@ -686,6 +668,95 @@
       left: -4px;
       line-height: 1;
     }
+
+    /* ---- decorazioni Halloween ---- */
+    #display-view {
+      background-color: #140a1f;
+      background-image:
+        radial-gradient(1.5px 1.5px at 8% 30%, rgba(255,255,255,.55), transparent 60%),
+        radial-gradient(1.5px 1.5px at 22% 70%, rgba(255,255,255,.4), transparent 60%),
+        radial-gradient(2px 2px at 37% 45%, rgba(255,255,255,.5), transparent 60%),
+        radial-gradient(1.5px 1.5px at 51% 82%, rgba(255,255,255,.4), transparent 60%),
+        radial-gradient(2px 2px at 66% 38%, rgba(255,255,255,.55), transparent 60%),
+        radial-gradient(1.5px 1.5px at 79% 66%, rgba(255,255,255,.4), transparent 60%),
+        radial-gradient(1.5px 1.5px at 92% 28%, rgba(255,255,255,.5), transparent 60%),
+        radial-gradient(1.5px 1.5px at 14% 90%, rgba(255,255,255,.35), transparent 60%),
+        radial-gradient(1.5px 1.5px at 88% 88%, rgba(255,255,255,.35), transparent 60%),
+        radial-gradient(ellipse at 50% 100%, rgba(255,122,0,0.16), transparent 55%),
+        radial-gradient(ellipse at 50% 0%, rgba(123,44,191,0.28), transparent 60%);
+    }
+    #display-view .datetime { white-space: nowrap; }
+    .hw-title {
+      flex: 1;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 20px;
+      pointer-events: none;
+      user-select: none;
+    }
+    .hw-moon {
+      width: 92px; height: 92px; flex: none;
+      filter: drop-shadow(0 0 26px rgba(255,226,140,0.65));
+    }
+    .hw-text {
+      font-family: "Creepster", "Inter", cursive;
+      font-size: 72px;
+      letter-spacing: 3px;
+      line-height: 1;
+      color: #ff8a1f;
+      white-space: nowrap;
+      text-shadow: 0 0 10px rgba(255,138,31,0.8), 0 0 34px rgba(255,90,0,0.55), 3px 4px 0 #3b0a52;
+      animation: hw-flicker 5s infinite;
+    }
+    @keyframes hw-flicker {
+      0%, 18%, 22%, 60%, 64%, 100% { opacity: 1; }
+      20% { opacity: .55; } 62% { opacity: .7; } 63% { opacity: .9; }
+    }
+
+    .hw-layer { position: fixed; inset: 0; pointer-events: none; z-index: 1001; overflow: hidden; }
+    .hw-drips {
+      position: absolute; left: 0; right: 0;
+      top: calc(var(--header-height) - 1px);
+      width: 100%; height: 22px;
+      filter: drop-shadow(0 0 8px rgba(255,122,0,0.6));
+    }
+    .hw-web { position: absolute; top: 0; width: 130px; height: 130px; opacity: .45; }
+    .hw-web svg { width: 100%; height: 100%; }
+    .hw-web-l { left: 0; }
+    .hw-web-r { right: 0; transform: scaleX(-1); }
+
+    .hw-bat {
+      position: absolute; left: 0;
+      animation: hw-fly linear infinite;
+      will-change: transform;
+      filter: drop-shadow(0 0 8px rgba(179,107,255,0.55));
+    }
+    .hw-bat svg { width: 100%; height: auto; display: block; overflow: visible; }
+    .hw-bat .wing { transform-origin: 32px 14px; animation: hw-flap .32s ease-in-out infinite alternate; }
+    @keyframes hw-flap { from { transform: scaleY(1); } to { transform: scaleY(.35); } }
+    @keyframes hw-fly {
+      0%   { transform: translate(-150px, 0); }
+      25%  { transform: translate(25vw, -12px); }
+      50%  { transform: translate(52vw, 10px); }
+      75%  { transform: translate(78vw, -8px); }
+      100% { transform: translate(calc(100vw + 150px), 4px); }
+    }
+
+    .hw-graveyard, .hw-pumpkins {
+      position: absolute;
+      bottom: var(--footer-height);
+      height: 70px; width: 475px;
+    }
+    .hw-graveyard { left: 0; }
+    .hw-pumpkins  { right: 0; }
+    .hw-glow { animation: hw-pumpkin 2.6s ease-in-out infinite; }
+    .hw-pumpkins .hw-glow:nth-of-type(2) { animation-delay: -0.8s; }
+    .hw-pumpkins .hw-glow:nth-of-type(3) { animation-delay: -1.6s; }
+    @keyframes hw-pumpkin {
+      0%, 100% { filter: drop-shadow(0 0 4px rgba(255,138,31,.5)); }
+      50%      { filter: drop-shadow(0 0 14px rgba(255,160,40,.95)); }
+    }
   </style>
 </head>
 <body>
@@ -696,12 +767,25 @@
   <div id="display-view">
   <header>
     <img src="CF Lampugnano blu xl.png" alt="Logo Piscina" onerror="this.style.display='none'; document.write('<h2>Piscina Lampugnano</h2>')"/>
-    <div class="halloween-deco" aria-hidden="true"><span>🎃</span><span>🦇</span><span>👻</span><span>🕸️</span></div>
+    <div class="hw-title" aria-hidden="true">
+      <svg class="hw-moon" viewBox="0 0 120 120"><defs><radialGradient id="mg" cx="40%" cy="38%" r="70%"><stop offset="0" stop-color="#fff6d6"/><stop offset="1" stop-color="#f2c96b"/></radialGradient></defs><circle cx="60" cy="60" r="52" fill="url(#mg)"/><circle cx="42" cy="46" r="9" fill="#e6b955" opacity=".6"/><circle cx="76" cy="70" r="12" fill="#e6b955" opacity=".5"/><circle cx="58" cy="88" r="6" fill="#e6b955" opacity=".55"/><circle cx="80" cy="36" r="5" fill="#e6b955" opacity=".5"/></svg>
+      <span class="hw-text">Buon Halloween</span>
+    </div>
     <div class="datetime">
       <div class="time" id="clock">--:--</div>
       <div class="date" id="date">--</div>
     </div>
   </header>
+
+
+  <div class="hw-layer" aria-hidden="true">
+    <svg class="hw-drips" viewBox="0 0 1920 22" preserveAspectRatio="xMidYMin slice"><path d="M0,0 H1920 V4 H1860 V19 a5.0,5.0 0 0 1 -10,0 V4 H1741 V17 a6.0,6.0 0 0 1 -12,0 V4 H1731 V10 a6.0,6.0 0 0 1 -12,0 V4 H1699 V8 a6.0,6.0 0 0 1 -12,0 V4 H1661 V9 a6.0,6.0 0 0 1 -12,0 V4 H1640 V10 a4.0,4.0 0 0 1 -8,0 V4 H1584 V13 a4.0,4.0 0 0 1 -8,0 V4 H1545 V8 a6.0,6.0 0 0 1 -12,0 V4 H1488 V14 a5.0,5.0 0 0 1 -10,0 V4 H1480 V18 a5.0,5.0 0 0 1 -10,0 V4 H1412 V18 a4.0,4.0 0 0 1 -8,0 V4 H1391 V20 a4.0,4.0 0 0 1 -8,0 V4 H1366 V16 a5.0,5.0 0 0 1 -10,0 V4 H1363 V20 a4.0,4.0 0 0 1 -8,0 V4 H1352 V17 a4.0,4.0 0 0 1 -8,0 V4 H1253 V12 a6.0,6.0 0 0 1 -12,0 V4 H1061 V17 a5.0,5.0 0 0 1 -10,0 V4 H826 V14 a4.0,4.0 0 0 1 -8,0 V4 H821 V12 a5.0,5.0 0 0 1 -10,0 V4 H820 V12 a6.0,6.0 0 0 1 -12,0 V4 H728 V11 a4.0,4.0 0 0 1 -8,0 V4 H634 V9 a6.0,6.0 0 0 1 -12,0 V4 H625 V10 a5.0,5.0 0 0 1 -10,0 V4 H525 V15 a5.0,5.0 0 0 1 -10,0 V4 H0 Z" fill="#ff7a00"/></svg>
+    <div class="hw-web hw-web-l"><svg viewBox="0 0 120 120" fill="none" stroke="#e9dcff" stroke-width="1.3" stroke-linecap="round"><path d="M0 0 L120 0 M0 0 L0 120 M0 0 L100 100 M0 0 L120 55 M0 0 L55 120"/><path d="M26 0 Q22 22 0 26 M52 0 Q46 46 0 52 M80 0 Q70 70 0 80 M108 0 Q92 92 0 108"/><path d="M0 0 L108 0" opacity="0"/><circle cx="72" cy="72" r="3" fill="#e9dcff" stroke="none"/><path d="M72 72 L72 100" stroke-width="1"/></svg></div>
+    <div class="hw-web hw-web-r"><svg viewBox="0 0 120 120" fill="none" stroke="#e9dcff" stroke-width="1.3" stroke-linecap="round"><path d="M0 0 L120 0 M0 0 L0 120 M0 0 L100 100 M0 0 L120 55 M0 0 L55 120"/><path d="M26 0 Q22 22 0 26 M52 0 Q46 46 0 52 M80 0 Q70 70 0 80 M108 0 Q92 92 0 108"/><path d="M0 0 L108 0" opacity="0"/><circle cx="72" cy="72" r="3" fill="#e9dcff" stroke="none"/><path d="M72 72 L72 100" stroke-width="1"/></svg></div>
+    <div class="hw-bat b1" style="top:18px;width:110px;animation-duration:19s;animation-delay:-3s"><svg viewBox="0 0 64 36"><g class="wing"><path d="M32 14 C26 2 14 0 0 6 C6 8 8 14 10 22 C14 16 18 16 22 22 C24 18 28 18 32 26 C36 18 40 18 42 22 C46 16 50 16 54 22 C56 14 58 8 64 6 C50 0 38 2 32 14Z" fill="#2d1245" stroke="#b36bff" stroke-width="1.2"/></g><circle cx="29.5" cy="15" r="1.4" fill="#ff7a00"/><circle cx="34.5" cy="15" r="1.4" fill="#ff7a00"/></svg></div><div class="hw-bat b2" style="top:92px;width:80px;animation-duration:27s;animation-delay:-14s"><svg viewBox="0 0 64 36"><g class="wing"><path d="M32 14 C26 2 14 0 0 6 C6 8 8 14 10 22 C14 16 18 16 22 22 C24 18 28 18 32 26 C36 18 40 18 42 22 C46 16 50 16 54 22 C56 14 58 8 64 6 C50 0 38 2 32 14Z" fill="#2d1245" stroke="#b36bff" stroke-width="1.2"/></g><circle cx="29.5" cy="15" r="1.4" fill="#ff7a00"/><circle cx="34.5" cy="15" r="1.4" fill="#ff7a00"/></svg></div><div class="hw-bat b3" style="top:140px;width:62px;animation-duration:23s;animation-delay:-8s"><svg viewBox="0 0 64 36"><g class="wing"><path d="M32 14 C26 2 14 0 0 6 C6 8 8 14 10 22 C14 16 18 16 22 22 C24 18 28 18 32 26 C36 18 40 18 42 22 C46 16 50 16 54 22 C56 14 58 8 64 6 C50 0 38 2 32 14Z" fill="#2d1245" stroke="#b36bff" stroke-width="1.2"/></g><circle cx="29.5" cy="15" r="1.4" fill="#ff7a00"/><circle cx="34.5" cy="15" r="1.4" fill="#ff7a00"/></svg></div><div class="hw-bat b4" style="top:44px;width:70px;animation-duration:33s;animation-delay:-22s"><svg viewBox="0 0 64 36"><g class="wing"><path d="M32 14 C26 2 14 0 0 6 C6 8 8 14 10 22 C14 16 18 16 22 22 C24 18 28 18 32 26 C36 18 40 18 42 22 C46 16 50 16 54 22 C56 14 58 8 64 6 C50 0 38 2 32 14Z" fill="#2d1245" stroke="#b36bff" stroke-width="1.2"/></g><circle cx="29.5" cy="15" r="1.4" fill="#ff7a00"/><circle cx="34.5" cy="15" r="1.4" fill="#ff7a00"/></svg></div>
+    <svg class="hw-graveyard" viewBox="0 0 380 56" preserveAspectRatio="xMinYMax meet"><g fill="#0b0513" stroke="#7a45b5" stroke-width="1.5"><path d="M6 56 V30 a14 14 0 0 1 28 0 V56Z"/><path d="M60 56 V22 a16 16 0 0 1 32 0 V56Z"/><path d="M130 56 V34 a12 12 0 0 1 24 0 V56Z"/><path d="M210 56 V28 a14 14 0 0 1 28 0 V56Z"/></g><g stroke="#7a45b5" stroke-width="1.5" fill="none"><path d="M20 20 V36 M14 26 H26"/><path d="M76 12 V30 M69 18 H83"/></g><g stroke="#0b0513" stroke-width="3" fill="none" stroke-linecap="round"><path d="M300 56 V26 M300 40 L284 28 L278 18 M300 34 L316 22 L322 12 M290 33 L284 38"/></g><g stroke="#7a45b5" stroke-width="0.8" fill="none" opacity=".8"><path d="M300 56 V26 M300 40 L284 28 L278 18 M300 34 L316 22 L322 12"/></g><path d="M0 56 V52 Q90 46 190 52 T380 52 V56Z" fill="#0b0513"/></svg>
+    <svg class="hw-pumpkins" viewBox="0 0 380 56" preserveAspectRatio="xMaxYMax meet"><g transform="translate(40 0) scale(0.9)" class="hw-glow"><ellipse cx="30" cy="38" rx="24" ry="18" fill="#ff7a00"/><ellipse cx="18" cy="38" rx="12" ry="18" fill="#ff9a2e" opacity=".55"/><ellipse cx="42" cy="38" rx="12" ry="18" fill="#e86100" opacity=".55"/><path d="M28 22 q2 -8 8 -9 q-1 6 -4 9z" fill="#3c7a2a"/><path d="M17 32 l7 -2 l-1 7z M43 32 l-7 -2 l1 7z M30 40 l-3 6 h6z" fill="#2a0f12"/><path d="M16 46 q14 12 28 0 l-3 -1 l-3 4 l-4 -3 l-4 3 l-4 -3 l-4 4 l-3 -4z" fill="#2a0f12"/></g><g transform="translate(120 0) scale(0.65)" class="hw-glow"><ellipse cx="30" cy="38" rx="24" ry="18" fill="#ff7a00"/><ellipse cx="18" cy="38" rx="12" ry="18" fill="#ff9a2e" opacity=".55"/><ellipse cx="42" cy="38" rx="12" ry="18" fill="#e86100" opacity=".55"/><path d="M28 22 q2 -8 8 -9 q-1 6 -4 9z" fill="#3c7a2a"/><path d="M17 32 l7 -2 l-1 7z M43 32 l-7 -2 l1 7z M30 40 l-3 6 h6z" fill="#2a0f12"/><path d="M16 46 q14 12 28 0 l-3 -1 l-3 4 l-4 -3 l-4 3 l-4 -3 l-4 4 l-3 -4z" fill="#2a0f12"/></g><g transform="translate(260 0) scale(1.05)" class="hw-glow"><ellipse cx="30" cy="38" rx="24" ry="18" fill="#ff7a00"/><ellipse cx="18" cy="38" rx="12" ry="18" fill="#ff9a2e" opacity=".55"/><ellipse cx="42" cy="38" rx="12" ry="18" fill="#e86100" opacity=".55"/><path d="M28 22 q2 -8 8 -9 q-1 6 -4 9z" fill="#3c7a2a"/><path d="M17 32 l7 -2 l-1 7z M43 32 l-7 -2 l1 7z M30 40 l-3 6 h6z" fill="#2a0f12"/><path d="M16 46 q14 12 28 0 l-3 -1 l-3 4 l-4 -3 l-4 3 l-4 -3 l-4 4 l-3 -4z" fill="#2a0f12"/></g></svg>
+  </div>
 
   <!-- ====== BANNER "IN CORSO ORA" ====== -->
   <div id="active-banner"></div>
