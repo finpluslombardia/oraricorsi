@@ -621,16 +621,16 @@
       --lg-yellow: 255, 214, 10;
       --lg-red:    255, 69, 58;
     }
-    body { background: #0b1233; }
+    body { background: #07173f; }
     #display-view { color: var(--lg-text); background: transparent; position: relative; }
 
     /* --- sfondo vivo, dietro al vetro --- */
     .lg-bg {
       position: fixed; inset: 0; z-index: 0; overflow: hidden;
       background:
-        radial-gradient(120% 90% at 15% 0%,  #1b3a8a 0%, transparent 60%),
-        radial-gradient(110% 90% at 100% 100%, #5b21b6 0%, transparent 60%),
-        linear-gradient(160deg, #0a1030 0%, #14235e 55%, #2a1458 100%);
+        radial-gradient(120% 90% at 15% 0%,  #1456c8 0%, transparent 60%),
+        radial-gradient(110% 90% at 100% 100%, #0b6fd6 0%, transparent 60%),
+        linear-gradient(160deg, #06143a 0%, #0c2a6b 55%, #0a3a8a 100%);
       pointer-events: none;
     }
     .lg-bg i {
@@ -638,9 +638,9 @@
       will-change: transform;
     }
     .lg-bg i:nth-child(1) { width: 46vw; height: 46vw; left: -8vw;  top: 8vh;  background: #0a84ff; animation: lg-drift1 26s ease-in-out infinite alternate; }
-    .lg-bg i:nth-child(2) { width: 40vw; height: 40vw; right: -6vw; top: 30vh; background: #bf5af2; animation: lg-drift2 31s ease-in-out infinite alternate; }
-    .lg-bg i:nth-child(3) { width: 34vw; height: 34vw; left: 30vw;  bottom: -12vh; background: #30d0c8; animation: lg-drift3 28s ease-in-out infinite alternate; }
-    .lg-bg i:nth-child(4) { width: 26vw; height: 26vw; right: 22vw; top: -10vh; background: #ff375f; opacity: .22; animation: lg-drift2 36s ease-in-out infinite alternate-reverse; }
+    .lg-bg i:nth-child(2) { width: 40vw; height: 40vw; right: -6vw; top: 30vh; background: #1e90ff; animation: lg-drift2 31s ease-in-out infinite alternate; }
+    .lg-bg i:nth-child(3) { width: 34vw; height: 34vw; left: 30vw;  bottom: -12vh; background: #64d2ff; animation: lg-drift3 28s ease-in-out infinite alternate; }
+    .lg-bg i:nth-child(4) { width: 26vw; height: 26vw; right: 22vw; top: -10vh; background: #5ac8fa; opacity: .30; animation: lg-drift2 36s ease-in-out infinite alternate-reverse; }
     @keyframes lg-drift1 { to { transform: translate(18vw, 14vh) scale(1.15); } }
     @keyframes lg-drift2 { to { transform: translate(-16vw, -12vh) scale(1.1); } }
     @keyframes lg-drift3 { to { transform: translate(-14vw, -16vh) scale(1.2); } }
@@ -657,8 +657,7 @@
       backdrop-filter: var(--lg-blur);
       border: 1px solid var(--lg-rim);
       box-shadow:
-        inset 0 1.5px 0 rgba(255,255,255,0.75),      /* riflesso speculare in alto */
-        inset 0 -1.5px 0 rgba(255,255,255,0.14),
+                inset 0 -1.5px 0 rgba(255,255,255,0.14),
         inset 0 0 26px rgba(255,255,255,0.10),       /* lente: bordo luminoso interno */
         0 22px 44px rgba(2,8,40,0.38),
         0 4px 10px rgba(2,8,40,0.25);
@@ -673,28 +672,16 @@
       padding: 0 34px;
       overflow: hidden;
     }
-    #display-view header::before,
-    #display-view .course::before,
-    #display-view footer::before {
-      content: '';
-      position: absolute; inset: 0; pointer-events: none; z-index: 0;
-      background: linear-gradient(115deg, rgba(255,255,255,0.0) 20%, rgba(255,255,255,0.30) 36%, rgba(255,255,255,0.0) 52%);
-      background-size: 260% 100%;
-      background-position: 120% 0;
-      animation: lg-sheen 9s ease-in-out infinite;
-    }
-    #display-view .course::before { animation-duration: 12s; opacity: .8; }
-    @keyframes lg-sheen { 0%, 55% { background-position: 120% 0; } 100% { background-position: -80% 0; } }
     #display-view header > * { position: relative; z-index: 1; }
     #display-view header img {
       height: 80%;
       border-radius: 26px;
       border: 1.5px solid rgba(255,255,255,0.6);
-      box-shadow: 0 10px 26px rgba(2,8,40,0.4), inset 0 1px 0 rgba(255,255,255,0.8);
+      box-shadow: 0 10px 26px rgba(2,8,40,0.4);
     }
     .datetime .time {
       color: #fff;
-      text-shadow: 0 2px 18px rgba(120,170,255,0.55), 0 1px 0 rgba(255,255,255,0.25);
+      text-shadow: 0 2px 18px rgba(90,170,255,0.55);
     }
     .datetime .date { color: var(--lg-text-soft); }
 
@@ -712,7 +699,7 @@
     #ad-banner img {
       border-radius: 32px;
       border: 1.5px solid rgba(255,255,255,0.55);
-      box-shadow: inset 0 1.5px 0 rgba(255,255,255,0.7), 0 26px 60px rgba(2,8,40,0.55);
+      box-shadow: 0 26px 60px rgba(2,8,40,0.55);
     }
 
     /* --- box dei corsi --- */
@@ -735,15 +722,15 @@
     /* stati: vetro colorato */
     #display-view .green  { background-color: rgba(var(--lg-green), 0.52);  border-left: 20px solid rgba(var(--lg-green), 0.95); }
     #display-view .yellow { background-color: rgba(var(--lg-yellow), 0.50); border-left: 20px solid rgba(var(--lg-yellow), 0.95); }
-    #display-view .red    { background-color: rgba(var(--lg-red), 0.52);    border-left: 20px solid rgba(var(--lg-red), 0.95); }
-    #display-view .gray   { background-color: rgba(30,42,92,0.34); border-left: 20px solid rgba(255,255,255,0.45); color: var(--lg-text-soft); }
+    #display-view .red    { background-color: rgba(var(--lg-red), 0.70);    border-left: 20px solid rgba(var(--lg-red), 0.95); }
+    #display-view .gray   { background-color: rgba(14,62,140,0.34); border-left: 20px solid rgba(255,255,255,0.45); color: var(--lg-text-soft); }
     #display-view .gray .attivita { color: rgba(255,255,255,0.82); }
     #display-view .gray .info-time { color: rgba(255,255,255,0.88); }
     #display-view .green, #display-view .red { box-shadow:
-        inset 0 1.5px 0 rgba(255,255,255,0.75), inset 0 -1.5px 0 rgba(255,255,255,0.14), inset 0 0 26px rgba(255,255,255,0.10),
+        inset 0 -1.5px 0 rgba(255,255,255,0.14), inset 0 0 26px rgba(255,255,255,0.10),
         0 22px 44px rgba(2,8,40,0.38), 0 0 46px rgba(var(--lg-green), 0.40); }
     #display-view .red { box-shadow:
-        inset 0 1.5px 0 rgba(255,255,255,0.75), inset 0 -1.5px 0 rgba(255,255,255,0.14), inset 0 0 26px rgba(255,255,255,0.10),
+        inset 0 -1.5px 0 rgba(255,255,255,0.14), inset 0 0 26px rgba(255,255,255,0.10),
         0 22px 44px rgba(2,8,40,0.38), 0 0 42px rgba(var(--lg-red), 0.30); }
     @keyframes pulse-border {
       0%   { border-left-color: rgba(var(--lg-yellow), 0.95); }
