@@ -1300,6 +1300,13 @@
     // aspettare fino a 15 secondi il giro periodico successivo.
     let activeCourseEndTimes = [];
     let activeUltimoIngressoTimes = [];
+      // Senza ultimo ingresso impostato, il nuoto libero chiude gli ingressi 30 minuti prima della fine
+      function ultimoEff(c) {
+        if (c.ultimoIngresso) return c.ultimoIngresso;
+        const fm = parseTime(c.oraFine || '');
+        if (!Number.isFinite(fm)) return '';
+        const m = fm - 30; return String(Math.floor(m / 60)).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0');
+      }
     let dbReady = false;
 
     function toArray(val) {
@@ -1449,8 +1456,8 @@
       // Orari di "ultimo ingresso" ancora da raggiungere: servono a far
       // scattare il rosso esattamente al secondo giusto.
       activeUltimoIngressoTimes = activeCourses
-        .filter(c => /nuoto\s*libero/i.test(c.attivita || '') && c.ultimoIngresso)
-        .map(c => parseTime(c.ultimoIngresso))
+        .filter(c => /nuoto\s*(?:libero|controllato)/i.test(c.attivita || '') && ultimoEff(c))
+        .map(c => parseTime(ultimoEff(c)))
         .filter(m => Number.isFinite(m) && currentTime < m)
         .map(m => {
           const target = new Date();
@@ -1473,8 +1480,8 @@
         const key = `${corso.attivita}|${corso.oraIngresso}`;
         seenKeys.add(key);
 
-        const isNuotoLibero = /nuoto\s*libero/i.test(corso.attivita || '');
-        const ultimoIngressoMin = isNuotoLibero && corso.ultimoIngresso ? parseTime(corso.ultimoIngresso) : NaN;
+        const isNuotoLibero = /nuoto\s*(?:libero|controllato)/i.test(corso.attivita || '');
+        const ultimoIngressoMin = isNuotoLibero && ultimoEff(corso) ? parseTime(ultimoEff(corso)) : NaN;
         const ultimoIngressoPassato = Number.isFinite(ultimoIngressoMin) && currentTime >= ultimoIngressoMin;
 
         const ultimoIngressoHtml = (isNuotoLibero && corso.ultimoIngresso)
